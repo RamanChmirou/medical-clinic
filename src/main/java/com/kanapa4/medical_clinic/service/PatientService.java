@@ -22,4 +22,29 @@ public class PatientService {
         return patientRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Patient does not exists"));
     }
+
+    public Patient create(Patient patient) {
+        if (patientRepository.findByEmail(patient.getEmail()).isPresent()) {
+            throw new RuntimeException("Patient already exists");
+        }
+        return patientRepository.save(patient);
+    }
+
+    public Patient update(String email, Patient patient) {
+        Patient existing = findByEmail(email);
+
+        existing.setFirstName(patient.getFirstName());
+        existing.setLastName(patient.getLastName());
+        existing.setPhoneNumber(patient.getPhoneNumber());
+        existing.setIdCardNo(patient.getIdCardNo());
+        existing.setBirthday(patient.getBirthday());
+        existing.setPassword(patient.getPassword());
+
+        return existing;
+    }
+
+    public void delete(String email) {
+        patientRepository.getPatientList()
+                .removeIf(p -> p.getEmail().equalsIgnoreCase(email));
+    }
 }
