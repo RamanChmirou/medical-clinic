@@ -1,6 +1,7 @@
 package com.kanapa4.medical_clinic.repository;
 
-import com.kanapa4.medical_clinic.entity.Patient;
+import com.kanapa4.medical_clinic.exception.PatientDoesNotExistsException;
+import com.kanapa4.medical_clinic.model.Patient;
 import com.kanapa4.medical_clinic.exception.InvalidPatientException;
 import org.springframework.stereotype.Repository;
 
@@ -40,6 +41,6 @@ public class PatientRepository {
                     existingPatient.update(patient);
                     return existingPatient;
                 })
-                .orElseThrow(() -> new InvalidPatientException("Invalid Patient"));
+                .orElseThrow(() -> new PatientDoesNotExistsException("Patient does not exists"));
     }
 }

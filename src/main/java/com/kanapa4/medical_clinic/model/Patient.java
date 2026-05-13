@@ -1,4 +1,4 @@
-package com.kanapa4.medical_clinic.entity;
+package com.kanapa4.medical_clinic.model;
 import lombok.*;
 import java.time.LocalDate;
 

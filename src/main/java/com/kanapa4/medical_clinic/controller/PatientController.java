@@ -1,6 +1,7 @@
 package com.kanapa4.medical_clinic.controller;
 
-import com.kanapa4.medical_clinic.entity.Patient;
+import com.kanapa4.medical_clinic.model.EditPasswordCommand;
+import com.kanapa4.medical_clinic.model.Patient;
 import com.kanapa4.medical_clinic.service.PatientService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -14,7 +15,7 @@ import java.util.List;
 public class PatientController {
     private final PatientService patientService;
 
-    @GetMapping("/patients")
+    @GetMapping("/all")
     public List<Patient> findAll() {
         return patientService.findAll();
     }
@@ -38,5 +39,10 @@ public class PatientController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable String email) {
         patientService.delete(email);
+    }
+
+    @PatchMapping("/{email}")
+    public void editPassword(@PathVariable String email, @RequestBody EditPasswordCommand password) {
+        patientService.editPassword(email, password.getPassword());
     }
 }

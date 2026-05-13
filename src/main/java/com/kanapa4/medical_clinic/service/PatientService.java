@@ -1,6 +1,6 @@
 package com.kanapa4.medical_clinic.service;
 
-import com.kanapa4.medical_clinic.entity.Patient;
+import com.kanapa4.medical_clinic.model.Patient;
 import com.kanapa4.medical_clinic.exception.PatientAlreadyExistsException;
 import com.kanapa4.medical_clinic.exception.PatientDoesNotExistsException;
 import com.kanapa4.medical_clinic.repository.PatientRepository;
@@ -40,5 +40,11 @@ public class PatientService {
 
     public void delete(String email) {
         patientRepository.deleteByEmail(email);
+    }
+
+    public void editPassword(String email, String password) {
+        Patient patient = patientRepository.findByEmail(email)
+                .orElseThrow(() -> new PatientDoesNotExistsException("Patient does not exists"));
+        patient.setPassword(password);
     }
 }
