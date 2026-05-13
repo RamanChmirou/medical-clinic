@@ -32,10 +32,10 @@ public class PatientService {
         return patientRepository.save(patient);
     }
 
-    public Patient update(String email, Patient patient) {
+    public Patient update(String email, Patient patientData) {
         Patient existing = findByEmail(email);
-        existing.update(patient);
-        return existing;
+        existing.update(patientData);
+        return patientRepository.update(existing);
     }
 
     public void delete(String email) {

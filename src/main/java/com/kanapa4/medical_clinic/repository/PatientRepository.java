@@ -33,4 +33,13 @@ public class PatientRepository {
     public void deleteByEmail(String email) {
         patients.removeIf(patient -> patient.getEmail().equalsIgnoreCase(email));
     }
+
+    public Patient update(Patient patient) {
+        return findByEmail(patient.getEmail())
+                .map(existingPatient -> {
+                    existingPatient.update(patient);
+                    return existingPatient;
+                })
+                .orElseThrow(() -> new InvalidPatientException("Invalid Patient"));
+    }
 }
