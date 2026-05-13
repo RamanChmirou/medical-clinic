@@ -16,4 +16,13 @@ public class Patient {
     private String lastName;
     private String phoneNumber;
     private LocalDate birthday;
+
+    public void update(Patient patient) {
+        this.firstName = patient.getFirstName();
+        this.lastName = patient.getLastName();
+        this.phoneNumber = patient.getPhoneNumber();
+        this.idCardNo = patient.getIdCardNo();
+        this.birthday = patient.getBirthday();
+        this.password = patient.getPassword();
+    }
 }

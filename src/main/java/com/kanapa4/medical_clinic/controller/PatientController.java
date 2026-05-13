@@ -3,26 +3,28 @@ package com.kanapa4.medical_clinic.controller;
 import com.kanapa4.medical_clinic.entity.Patient;
 import com.kanapa4.medical_clinic.service.PatientService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RequiredArgsConstructor
 @RestController
+@RequestMapping("/patients")
 public class PatientController {
     private final PatientService patientService;
 
     @GetMapping("/patients")
-    public List<Patient> findAll (){
+    public List<Patient> findAll() {
         return patientService.findAll();
     }
 
-    @GetMapping("/patient/{email}")
-    public Patient findByEmail (@PathVariable String email) {
+    @GetMapping("/{email}")
+    public Patient findByEmail(@PathVariable String email) {
         return patientService.findByEmail(email);
     }
 
-    @PostMapping
+    @PostMapping("/create")
     public Patient add(@RequestBody Patient patient) {
         return patientService.create(patient);
     }
@@ -33,6 +35,7 @@ public class PatientController {
     }
 
     @DeleteMapping("/{email}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable String email) {
         patientService.delete(email);
     }

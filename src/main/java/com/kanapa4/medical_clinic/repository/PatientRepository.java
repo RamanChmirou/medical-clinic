@@ -1,29 +1,36 @@
 package com.kanapa4.medical_clinic.repository;
 
 import com.kanapa4.medical_clinic.entity.Patient;
-import lombok.Getter;
+import com.kanapa4.medical_clinic.exception.InvalidPatientException;
 import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-@Getter
 @Repository
 public class PatientRepository {
-    private final List<Patient> patientList = new ArrayList<>();
+    private final List<Patient> patients = new ArrayList<>();
 
     public Patient save(Patient patient) {
         if (patient == null) {
-            throw new IllegalArgumentException("Invalid Patient");
+            throw new InvalidPatientException("Invalid Patient");
         }
-        patientList.add(patient);
+        patients.add(patient);
         return patient;
     }
 
+    public List<Patient> findAll() {
+        return new ArrayList<>(patients);
+    }
+
     public Optional<Patient> findByEmail(String email) {
-        return patientList.stream()
+        return patients.stream()
                 .filter(patient -> patient.getEmail().equalsIgnoreCase(email))
                 .findFirst();
+    }
+
+    public void deleteByEmail(String email) {
+        patients.removeIf(patient -> patient.getEmail().equalsIgnoreCase(email));
     }
 }
