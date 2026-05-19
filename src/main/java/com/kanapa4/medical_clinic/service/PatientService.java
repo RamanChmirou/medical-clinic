@@ -43,8 +43,7 @@ public class PatientService {
     }
 
     public void editPassword(String email, String password) {
-        Patient patient = patientRepository.findByEmail(email)
-                .orElseThrow(() -> new PatientDoesNotExistsException("Patient does not exists"));
+        Patient patient = findByEmail(email);
         patient.setPassword(password);
     }
 }
