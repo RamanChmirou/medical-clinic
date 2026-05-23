@@ -1,7 +1,9 @@
 package com.kanapa4.medical_clinic.exception;
 
-public class PatientAlreadyExistsException extends RuntimeException {
+import org.springframework.http.HttpStatus;
+
+public class PatientAlreadyExistsException extends MedicalClinicException {
     public PatientAlreadyExistsException(String message) {
-        super(message);
+        super(message, HttpStatus.CONFLICT);
     }
 }

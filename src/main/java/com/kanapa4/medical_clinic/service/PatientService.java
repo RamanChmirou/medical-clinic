@@ -1,49 +1,73 @@
 package com.kanapa4.medical_clinic.service;
 
-import com.kanapa4.medical_clinic.model.Patient;
 import com.kanapa4.medical_clinic.exception.PatientAlreadyExistsException;
 import com.kanapa4.medical_clinic.exception.PatientDoesNotExistsException;
+import com.kanapa4.medical_clinic.mapper.PatientMapper;
+import com.kanapa4.medical_clinic.model.dto.PatientCreatedDto;
+import com.kanapa4.medical_clinic.model.dto.PatientDto;
+import com.kanapa4.medical_clinic.model.entity.Patient;
 import com.kanapa4.medical_clinic.repository.PatientRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class PatientService {
     private final PatientRepository patientRepository;
+    private final PatientMapper patientMapper;
 
-    public PatientService(PatientRepository patientRepository) {
-        this.patientRepository = patientRepository;
+    public List<PatientDto> findAll() {
+        return patientRepository.findAll().stream()
+                .map(patientMapper::toDto)
+                .toList();
     }
 
-    public List<Patient> findAll() {
-        return patientRepository.findAll();
+    public PatientDto findByEmail(String email) {
+        Patient patient = patientRepository.findByEmail(email)
+                .orElseThrow(() -> new PatientDoesNotExistsException("Patient does not exist"));
+        return patientMapper.toDto(patient);
     }
 
-    public Patient findByEmail(String email){
-        return patientRepository.findByEmail(email)
-                .orElseThrow(() -> new PatientDoesNotExistsException("Patient does not exists"));
-    }
-
-    public Patient create(Patient patient) {
-        if (patientRepository.findByEmail(patient.getEmail()).isPresent()) {
+    public PatientDto create(PatientCreatedDto dto) {
+        if (patientRepository.findByEmail(dto.getEmail()).isPresent()) {
             throw new PatientAlreadyExistsException("Patient already exists");
         }
-        return patientRepository.save(patient);
+
+        Patient patient = Patient.builder()
+                .email(dto.getEmail())
+                .password(dto.getPassword())
+                .firstName(dto.getFirstName())
+                .lastName(dto.getLastName())
+                .build();
+
+        Patient savedPatient = patientRepository.save(patient);
+        return patientMapper.toDto(savedPatient);
     }
 
-    public Patient update(String email, Patient patientData) {
-        Patient existing = findByEmail(email);
-        existing.update(patientData);
-        return patientRepository.update(existing);
+    public PatientDto update(String email, PatientDto dto) {
+        Patient existing = patientRepository.findByEmail(email)
+                .orElseThrow(() -> new PatientDoesNotExistsException("Patient does not exist"));
+
+        existing.setFirstName(dto.getFirstName());
+        existing.setLastName(dto.getLastName());
+
+        Patient updated = patientRepository.update(existing);
+        return patientMapper.toDto(updated);
     }
 
     public void delete(String email) {
+        if (patientRepository.findByEmail(email).isEmpty()) {
+            throw new PatientDoesNotExistsException("Patient does not exist");
+        }
         patientRepository.deleteByEmail(email);
     }
 
     public void editPassword(String email, String password) {
-        Patient patient = findByEmail(email);
+        Patient patient = patientRepository.findByEmail(email)
+                .orElseThrow(() -> new PatientDoesNotExistsException("Patient does not exist"));
         patient.setPassword(password);
+        patientRepository.update(patient);
     }
 }

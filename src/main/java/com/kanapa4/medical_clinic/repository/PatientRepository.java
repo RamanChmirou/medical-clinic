@@ -1,8 +1,8 @@
 package com.kanapa4.medical_clinic.repository;
 
 import com.kanapa4.medical_clinic.exception.PatientDoesNotExistsException;
-import com.kanapa4.medical_clinic.model.Patient;
 import com.kanapa4.medical_clinic.exception.InvalidPatientException;
+import com.kanapa4.medical_clinic.model.entity.Patient;
 import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;

@@ -1,7 +1,8 @@
 package com.kanapa4.medical_clinic.controller;
 
 import com.kanapa4.medical_clinic.model.EditPasswordCommand;
-import com.kanapa4.medical_clinic.model.Patient;
+import com.kanapa4.medical_clinic.model.dto.PatientCreatedDto;
+import com.kanapa4.medical_clinic.model.dto.PatientDto;
 import com.kanapa4.medical_clinic.service.PatientService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -16,22 +17,22 @@ public class PatientController {
     private final PatientService patientService;
 
     @GetMapping("/all")
-    public List<Patient> findAll() {
+    public List<PatientDto> findAll() {
         return patientService.findAll();
     }
 
     @GetMapping("/{email}")
-    public Patient findByEmail(@PathVariable String email) {
+    public PatientDto findByEmail(@PathVariable String email) {
         return patientService.findByEmail(email);
     }
 
     @PostMapping("/create")
-    public Patient add(@RequestBody Patient patient) {
+    public PatientDto add(@RequestBody PatientCreatedDto patient) {
         return patientService.create(patient);
     }
 
     @PutMapping("/{email}")
-    public Patient update(@PathVariable String email, @RequestBody Patient patient) {
+    public PatientDto update(@PathVariable String email, @RequestBody PatientDto patient) {
         return patientService.update(email, patient);
     }
 

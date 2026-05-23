@@ -1,7 +1,9 @@
 package com.kanapa4.medical_clinic.exception;
 
-public class PatientDoesNotExistsException extends RuntimeException {
+import org.springframework.http.HttpStatus;
+
+public class PatientDoesNotExistsException extends MedicalClinicException {
     public PatientDoesNotExistsException(String message) {
-        super(message);
+        super(message, HttpStatus.NOT_FOUND);
     }
 }
