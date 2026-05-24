@@ -17,21 +17,25 @@ public class PatientController {
     private final PatientService patientService;
 
     @GetMapping("/all")
+    @ResponseStatus(HttpStatus.OK)
     public List<PatientDto> findAll() {
         return patientService.findAll();
     }
 
     @GetMapping("/{email}")
+    @ResponseStatus(HttpStatus.OK)
     public PatientDto findByEmail(@PathVariable String email) {
         return patientService.findByEmail(email);
     }
 
     @PostMapping("/create")
+    @ResponseStatus(HttpStatus.CREATED)
     public PatientDto add(@RequestBody PatientCreatedDto patient) {
         return patientService.create(patient);
     }
 
     @PutMapping("/{email}")
+    @ResponseStatus(HttpStatus.OK)
     public PatientDto update(@PathVariable String email, @RequestBody PatientDto patient) {
         return patientService.update(email, patient);
     }
@@ -43,6 +47,7 @@ public class PatientController {
     }
 
     @PatchMapping("/{email}")
+    @ResponseStatus(HttpStatus.OK)
     public void editPassword(@PathVariable String email, @RequestBody EditPasswordCommand password) {
         patientService.editPassword(email, password.getPassword());
     }
