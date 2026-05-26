@@ -7,6 +7,7 @@ import com.kanapa4.medical_clinic.model.dto.PatientCreatedDto;
 import com.kanapa4.medical_clinic.model.dto.PatientDto;
 import com.kanapa4.medical_clinic.model.entity.Patient;
 import com.kanapa4.medical_clinic.repository.PatientRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -40,6 +41,9 @@ public class PatientService {
                 .password(dto.getPassword())
                 .firstName(dto.getFirstName())
                 .lastName(dto.getLastName())
+                .birthday(dto.getBirthday())
+                .idCardNo(dto.getIdCardNumber())
+                .phoneNumber(dto.getPhoneNumber())
                 .build();
 
         Patient savedPatient = patientRepository.save(patient);
@@ -53,10 +57,11 @@ public class PatientService {
         existing.setFirstName(dto.getFirstName());
         existing.setLastName(dto.getLastName());
 
-        Patient updated = patientRepository.update(existing);
+        Patient updated = patientRepository.save(existing);
         return patientMapper.toDto(updated);
     }
 
+    @Transactional
     public void delete(String email) {
         if (patientRepository.findByEmail(email).isEmpty()) {
             throw new PatientDoesNotExistsException("Patient does not exist");
@@ -64,10 +69,10 @@ public class PatientService {
         patientRepository.deleteByEmail(email);
     }
 
+    @Transactional
     public void editPassword(String email, String password) {
         Patient patient = patientRepository.findByEmail(email)
                 .orElseThrow(() -> new PatientDoesNotExistsException("Patient does not exist"));
         patient.setPassword(password);
-        patientRepository.update(patient);
     }
 }
