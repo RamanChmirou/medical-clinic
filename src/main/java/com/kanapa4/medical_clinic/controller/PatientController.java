@@ -1,7 +1,7 @@
 package com.kanapa4.medical_clinic.controller;
 
 import com.kanapa4.medical_clinic.model.EditPasswordCommand;
-import com.kanapa4.medical_clinic.model.dto.PatientCreatedDto;
+import com.kanapa4.medical_clinic.model.dto.PatientCreateCommand;
 import com.kanapa4.medical_clinic.model.dto.PatientDto;
 import com.kanapa4.medical_clinic.service.PatientService;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +30,7 @@ public class PatientController {
 
     @PostMapping("/create")
     @ResponseStatus(HttpStatus.CREATED)
-    public PatientDto add(@RequestBody PatientCreatedDto patient) {
+    public PatientDto add(@RequestBody PatientCreateCommand patient) {
         return patientService.create(patient);
     }
 

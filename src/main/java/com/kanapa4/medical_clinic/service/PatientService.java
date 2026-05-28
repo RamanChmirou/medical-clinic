@@ -3,9 +3,11 @@ package com.kanapa4.medical_clinic.service;
 import com.kanapa4.medical_clinic.exception.PatientAlreadyExistsException;
 import com.kanapa4.medical_clinic.exception.PatientDoesNotExistsException;
 import com.kanapa4.medical_clinic.mapper.PatientMapper;
-import com.kanapa4.medical_clinic.model.dto.PatientCreatedDto;
+import com.kanapa4.medical_clinic.model.Role;
+import com.kanapa4.medical_clinic.model.dto.PatientCreateCommand;
 import com.kanapa4.medical_clinic.model.dto.PatientDto;
 import com.kanapa4.medical_clinic.model.entity.Patient;
+import com.kanapa4.medical_clinic.model.entity.User;
 import com.kanapa4.medical_clinic.repository.PatientRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -26,23 +28,28 @@ public class PatientService {
     }
 
     public PatientDto findByEmail(String email) {
-        Patient patient = patientRepository.findByEmail(email)
+        Patient patient = patientRepository.findByUserEmail(email)
                 .orElseThrow(() -> new PatientDoesNotExistsException("Patient does not exist"));
         return patientMapper.toDto(patient);
     }
 
-    public PatientDto create(PatientCreatedDto dto) {
-        if (patientRepository.findByEmail(dto.getEmail()).isPresent()) {
+    public PatientDto create(PatientCreateCommand dto) {
+        if (patientRepository.findByUserEmail(dto.getEmail()).isPresent()) {
             throw new PatientAlreadyExistsException("Patient already exists");
         }
 
-        Patient patient = Patient.builder()
+        User user = User.builder()
                 .email(dto.getEmail())
                 .password(dto.getPassword())
+                .role(Role.PATIENT)
+                .build();
+
+        Patient patient = Patient.builder()
+                .user(user)
                 .firstName(dto.getFirstName())
                 .lastName(dto.getLastName())
                 .birthday(dto.getBirthday())
-                .idCardNo(dto.getIdCardNumber())
+                .idCardNo(dto.getIdCardNo())
                 .phoneNumber(dto.getPhoneNumber())
                 .build();
 
@@ -50,29 +57,30 @@ public class PatientService {
         return patientMapper.toDto(savedPatient);
     }
 
+    @Transactional
     public PatientDto update(String email, PatientDto dto) {
-        Patient existing = patientRepository.findByEmail(email)
+        Patient existing = patientRepository.findByUserEmail(email)
                 .orElseThrow(() -> new PatientDoesNotExistsException("Patient does not exist"));
 
         existing.setFirstName(dto.getFirstName());
         existing.setLastName(dto.getLastName());
+        existing.setPhoneNumber(dto.getPhoneNumber());
 
-        Patient updated = patientRepository.save(existing);
-        return patientMapper.toDto(updated);
+        return patientMapper.toDto(existing);
     }
 
     @Transactional
     public void delete(String email) {
-        if (patientRepository.findByEmail(email).isEmpty()) {
+        if (patientRepository.findByUserEmail(email).isEmpty()) {
             throw new PatientDoesNotExistsException("Patient does not exist");
         }
-        patientRepository.deleteByEmail(email);
+        patientRepository.deleteByUserEmail(email);
     }
 
     @Transactional
     public void editPassword(String email, String password) {
-        Patient patient = patientRepository.findByEmail(email)
+        Patient patient = patientRepository.findByUserEmail(email)
                 .orElseThrow(() -> new PatientDoesNotExistsException("Patient does not exist"));
-        patient.setPassword(password);
+        patient.getUser().setPassword(password);
     }
 }

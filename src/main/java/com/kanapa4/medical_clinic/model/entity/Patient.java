@@ -11,17 +11,13 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "patient")
+@Table(name = "patients")
 public class Patient {
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @Column(nullable = false, unique = true)
-    private String email;
-    @Transient
-    private String password;
-    @Column(nullable = false, unique = true)
-    private Long idCardNo;
+    private String idCardNo;
     @Column(nullable = false)
     private String firstName;
     @Column(nullable = false)
@@ -30,4 +26,7 @@ public class Patient {
     private String phoneNumber;
     @Column
     private LocalDate birthday;
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
+    private User user;
 }

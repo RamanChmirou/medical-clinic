@@ -7,12 +7,12 @@ import java.time.LocalDate;
 
 @Getter
 @Setter
-public class PatientCreatedDto {
+public class PatientCreateCommand {
     private String email;
     private String password;
     private String firstName;
     private String lastName;
-    private Long idCardNumber;
+    private String idCardNo;
     private LocalDate birthday;
     private String phoneNumber;
 }
