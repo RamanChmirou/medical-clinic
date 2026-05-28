@@ -1,6 +1,5 @@
 package com.kanapa4.medical_clinic.controller;
 
-import com.kanapa4.medical_clinic.model.EditPasswordCommand;
 import com.kanapa4.medical_clinic.model.dto.PatientCreateCommand;
 import com.kanapa4.medical_clinic.model.dto.PatientDto;
 import com.kanapa4.medical_clinic.service.PatientService;
@@ -28,7 +27,7 @@ public class PatientController {
         return patientService.findByEmail(email);
     }
 
-    @PostMapping("/create")
+    @PostMapping()
     @ResponseStatus(HttpStatus.CREATED)
     public PatientDto add(@RequestBody PatientCreateCommand patient) {
         return patientService.create(patient);
@@ -44,11 +43,5 @@ public class PatientController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable String email) {
         patientService.delete(email);
-    }
-
-    @PatchMapping("/{email}")
-    @ResponseStatus(HttpStatus.OK)
-    public void editPassword(@PathVariable String email, @RequestBody EditPasswordCommand password) {
-        patientService.editPassword(email, password.getPassword());
     }
 }

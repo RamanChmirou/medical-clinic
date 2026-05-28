@@ -34,13 +34,13 @@ public class PatientService {
     }
 
     public PatientDto create(PatientCreateCommand dto) {
-        if (patientRepository.findByUserEmail(dto.getEmail()).isPresent()) {
+        if (patientRepository.findByUserEmail(dto.getUser().getEmail()).isPresent()) {
             throw new PatientAlreadyExistsException("Patient already exists");
         }
 
         User user = User.builder()
-                .email(dto.getEmail())
-                .password(dto.getPassword())
+                .email(dto.getUser().getEmail())
+                .password(dto.getUser().getPassword())
                 .role(Role.PATIENT)
                 .build();
 
@@ -75,12 +75,5 @@ public class PatientService {
             throw new PatientDoesNotExistsException("Patient does not exist");
         }
         patientRepository.deleteByUserEmail(email);
-    }
-
-    @Transactional
-    public void editPassword(String email, String password) {
-        Patient patient = patientRepository.findByUserEmail(email)
-                .orElseThrow(() -> new PatientDoesNotExistsException("Patient does not exist"));
-        patient.getUser().setPassword(password);
     }
 }
