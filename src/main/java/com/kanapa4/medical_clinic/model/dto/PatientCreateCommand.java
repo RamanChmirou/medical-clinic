@@ -1,6 +1,5 @@
 package com.kanapa4.medical_clinic.model.dto;
 
-import com.kanapa4.medical_clinic.model.entity.User;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -14,5 +13,5 @@ public class PatientCreateCommand {
     private String idCardNo;
     private LocalDate birthday;
     private String phoneNumber;
-    private User user;
+    private Long userId;
 }

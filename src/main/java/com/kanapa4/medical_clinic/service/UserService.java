@@ -48,8 +48,8 @@ public class UserService {
 
         existing.setEmail(dto.getEmail());
         existing.setRole(dto.getRole());
-
-        return userMapper.toDto(existing);
+        User updatedUser = userRepository.save(existing);
+        return userMapper.toDto(updatedUser);
     }
 
     @Transactional

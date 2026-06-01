@@ -2,13 +2,14 @@ package com.kanapa4.medical_clinic.service;
 
 import com.kanapa4.medical_clinic.exception.PatientAlreadyExistsException;
 import com.kanapa4.medical_clinic.exception.PatientDoesNotExistsException;
+import com.kanapa4.medical_clinic.exception.UserDoesNotExistsException;
 import com.kanapa4.medical_clinic.mapper.PatientMapper;
-import com.kanapa4.medical_clinic.model.Role;
 import com.kanapa4.medical_clinic.model.dto.PatientCreateCommand;
 import com.kanapa4.medical_clinic.model.dto.PatientDto;
 import com.kanapa4.medical_clinic.model.entity.Patient;
 import com.kanapa4.medical_clinic.model.entity.User;
 import com.kanapa4.medical_clinic.repository.PatientRepository;
+import com.kanapa4.medical_clinic.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,7 @@ import java.util.List;
 public class PatientService {
     private final PatientRepository patientRepository;
     private final PatientMapper patientMapper;
+    private final UserRepository userRepository;
 
     public List<PatientDto> findAll() {
         return patientRepository.findAll().stream()
@@ -34,24 +36,13 @@ public class PatientService {
     }
 
     public PatientDto create(PatientCreateCommand dto) {
-        if (patientRepository.findByUserEmail(dto.getUser().getEmail()).isPresent()) {
+        if (patientRepository.findByUserId(dto.getUserId()).isPresent()) {
             throw new PatientAlreadyExistsException("Patient already exists");
         }
+        User user = userRepository.findById(dto.getUserId())
+                .orElseThrow(() -> new UserDoesNotExistsException("User does not exist"));
 
-        User user = User.builder()
-                .email(dto.getUser().getEmail())
-                .password(dto.getUser().getPassword())
-                .role(Role.PATIENT)
-                .build();
-
-        Patient patient = Patient.builder()
-                .user(user)
-                .firstName(dto.getFirstName())
-                .lastName(dto.getLastName())
-                .birthday(dto.getBirthday())
-                .idCardNo(dto.getIdCardNo())
-                .phoneNumber(dto.getPhoneNumber())
-                .build();
+        Patient patient = Patient.create(dto, user);
 
         Patient savedPatient = patientRepository.save(patient);
         return patientMapper.toDto(savedPatient);

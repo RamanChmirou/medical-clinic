@@ -16,13 +16,13 @@ import java.util.List;
 public class UserController {
     private final UserService userService;
 
-    @GetMapping("/all")
+    @GetMapping
     @ResponseStatus(HttpStatus.OK)
     public List<UserDto> findAll() {
         return userService.findAll();
     }
 
-    @PostMapping()
+    @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public UserDto add(@RequestBody UserCreateCommand patient) {
         return userService.create(patient);

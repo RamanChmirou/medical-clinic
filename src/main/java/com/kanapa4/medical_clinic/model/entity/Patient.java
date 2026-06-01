@@ -1,5 +1,6 @@
 package com.kanapa4.medical_clinic.model.entity;
 
+import com.kanapa4.medical_clinic.model.dto.PatientCreateCommand;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -29,4 +30,15 @@ public class Patient {
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
     private User user;
+
+    public static Patient create(PatientCreateCommand dto, User user) {
+        return Patient.builder()
+                .idCardNo(dto.getIdCardNo())
+                .firstName(dto.getFirstName())
+                .lastName(dto.getLastName())
+                .phoneNumber(dto.getPhoneNumber())
+                .birthday(dto.getBirthday())
+                .user(user)
+                .build();
+    }
 }

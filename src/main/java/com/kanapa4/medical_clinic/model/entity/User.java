@@ -22,4 +22,6 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
+    @OneToOne(mappedBy = "user")
+    private Patient patient;
 }
