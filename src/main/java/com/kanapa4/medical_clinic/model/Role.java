@@ -3,8 +3,9 @@ package com.kanapa4.medical_clinic.model;
 public enum Role {
     PATIENT("patient");
 
-    String name;
+    private final String name;
 
     Role(String name) {
+        this.name = name;
     }
 }
