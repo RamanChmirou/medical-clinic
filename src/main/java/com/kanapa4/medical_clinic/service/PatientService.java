@@ -29,16 +29,23 @@ public class PatientService {
                 .toList();
     }
 
-    public PatientDto findByEmail(String email) {
-        Patient patient = patientRepository.findByUserEmail(email)
+    public List<PatientDto> findAllByUserEmail(String email) {
+        return patientRepository.findAllByUserEmail(email).stream()
+                .map(patientMapper::toDto)
+                .toList();
+    }
+
+    public PatientDto findByIdCardNo(String idCardNo) {
+        Patient patient = patientRepository.findByIdCardNo(idCardNo)
                 .orElseThrow(() -> new PatientDoesNotExistsException("Patient does not exist"));
         return patientMapper.toDto(patient);
     }
 
     public PatientDto create(PatientCreateCommand dto) {
-        if (patientRepository.findByUserId(dto.getUserId()).isPresent()) {
+        if (patientRepository.findByIdCardNo(dto.getIdCardNo()).isPresent()) {
             throw new PatientAlreadyExistsException("Patient already exists");
         }
+
         User user = userRepository.findById(dto.getUserId())
                 .orElseThrow(() -> new UserDoesNotExistsException("User does not exist"));
 
@@ -49,8 +56,8 @@ public class PatientService {
     }
 
     @Transactional
-    public PatientDto update(String email, PatientDto dto) {
-        Patient existing = patientRepository.findByUserEmail(email)
+    public PatientDto update(String idCardNo, PatientDto dto) {
+        Patient existing = patientRepository.findByIdCardNo(idCardNo)
                 .orElseThrow(() -> new PatientDoesNotExistsException("Patient does not exist"));
 
         existing.setFirstName(dto.getFirstName());
@@ -61,10 +68,10 @@ public class PatientService {
     }
 
     @Transactional
-    public void delete(String email) {
-        if (patientRepository.findByUserEmail(email).isEmpty()) {
+    public void delete(String idCardNo) {
+        if (patientRepository.findByIdCardNo(idCardNo).isEmpty()) {
             throw new PatientDoesNotExistsException("Patient does not exist");
         }
-        patientRepository.deleteByUserEmail(email);
+        patientRepository.deleteByIdCardNo(idCardNo);
     }
 }

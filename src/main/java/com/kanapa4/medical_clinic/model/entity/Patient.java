@@ -27,7 +27,7 @@ public class Patient {
     private String phoneNumber;
     @Column
     private LocalDate birthday;
-    @OneToOne(cascade = CascadeType.ALL)
+    @ManyToOne
     @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
     private User user;
 
