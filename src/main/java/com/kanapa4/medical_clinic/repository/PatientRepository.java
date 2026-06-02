@@ -12,6 +12,4 @@ public interface PatientRepository extends JpaRepository<Patient, Long> {
     Optional<Patient> findByIdCardNo(String idCardNo);
     List<Patient> findAllByUserEmail(String email);
     void deleteByIdCardNo(String idCardNo);
-
-    String id(Long id);
 }
