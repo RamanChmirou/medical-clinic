@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -23,20 +24,14 @@ public class PatientService {
     private final PatientMapper patientMapper;
     private final UserRepository userRepository;
 
-    public List<PatientDto> findAll() {
-        return patientRepository.findAll().stream()
+    public List<PatientDto> findAll(String email) {
+        return search(email).stream()
                 .map(patientMapper::toDto)
                 .toList();
     }
 
-    public List<PatientDto> findAllByUserEmail(String email) {
-        return patientRepository.findAllByUserEmail(email).stream()
-                .map(patientMapper::toDto)
-                .toList();
-    }
-
-    public PatientDto findByIdCardNo(String idCardNo) {
-        Patient patient = patientRepository.findByIdCardNo(idCardNo)
+    public PatientDto findById(Long id) {
+        Patient patient = patientRepository.findById(id)
                 .orElseThrow(() -> new PatientDoesNotExistsException("Patient does not exist"));
         return patientMapper.toDto(patient);
     }
@@ -56,8 +51,8 @@ public class PatientService {
     }
 
     @Transactional
-    public PatientDto update(String idCardNo, PatientDto dto) {
-        Patient existing = patientRepository.findByIdCardNo(idCardNo)
+    public PatientDto update(Long id, PatientDto dto) {
+        Patient existing = patientRepository.findById(id)
                 .orElseThrow(() -> new PatientDoesNotExistsException("Patient does not exist"));
 
         existing.setFirstName(dto.getFirstName());
@@ -68,10 +63,16 @@ public class PatientService {
     }
 
     @Transactional
-    public void delete(String idCardNo) {
-        if (patientRepository.findByIdCardNo(idCardNo).isEmpty()) {
+    public void delete(Long id) {
+        if (patientRepository.findById(id).isEmpty()) {
             throw new PatientDoesNotExistsException("Patient does not exist");
         }
-        patientRepository.deleteByIdCardNo(idCardNo);
+        patientRepository.deleteById(id);
+    }
+
+    private List<Patient> search(String email) {
+        return Optional.ofNullable(email)
+                .map(patientEmail -> patientRepository.findAllByUserEmail(email))
+                .orElse(patientRepository.findAll());
     }
 }

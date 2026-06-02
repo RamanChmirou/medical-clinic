@@ -17,20 +17,14 @@ public class PatientController {
 
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
-    public List<PatientDto> findAll() {
-        return patientService.findAll();
+    public List<PatientDto> findAll(@RequestParam String email) {
+        return patientService.findAll(email);
     }
 
-    @GetMapping("/user/{email}")
+    @GetMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
-    public List<PatientDto> findAllByUserEmail(@PathVariable String email) {
-        return patientService.findAllByUserEmail(email);
-    }
-
-    @GetMapping("/{idCardNo}")
-    @ResponseStatus(HttpStatus.OK)
-    public PatientDto findByIdCardNo(@PathVariable String idCardNo) {
-        return patientService.findByIdCardNo(idCardNo);
+    public PatientDto findByIdCardNo(@PathVariable Long id) {
+        return patientService.findById(id);
     }
 
     @PostMapping()
@@ -39,15 +33,15 @@ public class PatientController {
         return patientService.create(patient);
     }
 
-    @PutMapping("/{idCardNo}")
+    @PutMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
-    public PatientDto update(@PathVariable String idCardNo, @RequestBody PatientDto patient) {
-        return patientService.update(idCardNo, patient);
+    public PatientDto update(@PathVariable Long id, @RequestBody PatientDto patient) {
+        return patientService.update(id, patient);
     }
 
-    @DeleteMapping("/{idCardNo}")
+    @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable String idCardNo) {
-        patientService.delete(idCardNo);
+    public void delete(@PathVariable Long id) {
+        patientService.delete(id);
     }
 }
