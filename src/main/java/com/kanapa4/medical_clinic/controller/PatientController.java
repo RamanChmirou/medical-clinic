@@ -16,25 +16,22 @@ public class PatientController {
     private final PatientService patientService;
 
     @GetMapping
-    @ResponseStatus(HttpStatus.OK)
     public List<PatientDto> findAll(@RequestParam String email) {
         return patientService.findAll(email);
     }
 
     @GetMapping("/{id}")
-    @ResponseStatus(HttpStatus.OK)
     public PatientDto findByIdCardNo(@PathVariable Long id) {
         return patientService.findById(id);
     }
 
-    @PostMapping()
+    @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public PatientDto add(@RequestBody PatientCreateCommand patient) {
         return patientService.create(patient);
     }
 
     @PutMapping("/{id}")
-    @ResponseStatus(HttpStatus.OK)
     public PatientDto update(@PathVariable Long id, @RequestBody PatientDto patient) {
         return patientService.update(id, patient);
     }
