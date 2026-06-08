@@ -9,5 +9,6 @@ import java.time.LocalDateTime;
 @Setter
 public class VisitCreateCommand {
     private LocalDateTime dateTime;
+    private Integer durationInMinutes;
     private Long doctorId;
 }

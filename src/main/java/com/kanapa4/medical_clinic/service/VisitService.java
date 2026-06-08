@@ -24,15 +24,36 @@ public class VisitService {
     @Transactional
     public VisitDto createVisitSlot(VisitCreateCommand dto) {
         LocalDateTime appointmentTime = dto.getDateTime();
+        Integer duration = dto.getDurationInMinutes();
 
         if (appointmentTime.isBefore(LocalDateTime.now())) {
             throw new InvalidVisitException("Cannot create a visit in the past.");
         }
+
         if (appointmentTime.getMinute() % 15 != 0 || appointmentTime.getSecond() != 0) {
             throw new InvalidVisitException("Visits can only be scheduled on the quarter-hour (e.g., 14:00, 14:15).");
         }
-        if (visitRepository.existsByDoctorIdAndDateTime(dto.getDoctorId(), appointmentTime)) {
-            throw new VisitAlreadyExistsException("The doctor already has a visit scheduled at this time.");
+
+        if (duration == null || duration <= 0 || duration % 15 != 0) {
+            throw new InvalidVisitException("Visit duration must be a positive multiple of 15 minutes.");
+        }
+
+        LocalDateTime endTime = appointmentTime.plusMinutes(duration);
+
+        LocalDateTime dayStart = appointmentTime.toLocalDate().atStartOfDay();
+        LocalDateTime dayEnd = dayStart.plusDays(1);
+
+        List<Visit> doctorsVisitsForDay = visitRepository.findAllByDoctorIdAndDate(dto.getDoctorId(), dayStart, dayEnd);
+
+        boolean hasOverlap = doctorsVisitsForDay.stream().anyMatch(existingVisit -> {
+            LocalDateTime existingStart = existingVisit.getDateTime();
+            LocalDateTime existingEnd = existingStart.plusMinutes(existingVisit.getDurationInMinutes());
+
+            return appointmentTime.isBefore(existingEnd) && existingStart.isBefore(endTime);
+        });
+
+        if (hasOverlap) {
+            throw new VisitAlreadyExistsException("The doctor already has a visit scheduled that overlaps with this time interval.");
         }
 
         Doctor doctor = doctorRepository.findById(dto.getDoctorId())
@@ -40,6 +61,7 @@ public class VisitService {
 
         Visit visit = Visit.builder()
                 .dateTime(appointmentTime)
+                .durationInMinutes(duration)
                 .doctor(doctor)
                 .patient(null)
                 .build();

@@ -4,7 +4,8 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public enum Role {
-    PATIENT("patient");
+    PATIENT("patient"),
+    DOCTOR("doctor");
 
     private final String name;
 }
