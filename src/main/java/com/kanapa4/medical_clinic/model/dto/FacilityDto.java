@@ -14,5 +14,5 @@ public class FacilityDto {
     private String zipCode;
     private String street;
     private String buildingNumber;
-    private Set<DoctorDto> doctors;
+    private Set<Long> doctorsId;
 }
