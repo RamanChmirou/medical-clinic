@@ -34,7 +34,7 @@ public class UserService {
         User user = User.builder()
                 .email(dto.getEmail())
                 .password(dto.getPassword())
-                .role(Role.PATIENT)
+                .role(dto.getRole())
                 .build();
 
         User savedUser = userRepository.save(user);

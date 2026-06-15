@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -23,22 +24,23 @@ public class PatientService {
     private final PatientMapper patientMapper;
     private final UserRepository userRepository;
 
-    public List<PatientDto> findAll() {
-        return patientRepository.findAll().stream()
+    public List<PatientDto> findAll(String email) {
+        return search(email).stream()
                 .map(patientMapper::toDto)
                 .toList();
     }
 
-    public PatientDto findByEmail(String email) {
-        Patient patient = patientRepository.findByUserEmail(email)
+    public PatientDto findById(Long id) {
+        Patient patient = patientRepository.findById(id)
                 .orElseThrow(() -> new PatientDoesNotExistsException("Patient does not exist"));
         return patientMapper.toDto(patient);
     }
 
     public PatientDto create(PatientCreateCommand dto) {
-        if (patientRepository.findByUserId(dto.getUserId()).isPresent()) {
+        if (patientRepository.findByIdCardNo(dto.getIdCardNo()).isPresent()) {
             throw new PatientAlreadyExistsException("Patient already exists");
         }
+
         User user = userRepository.findById(dto.getUserId())
                 .orElseThrow(() -> new UserDoesNotExistsException("User does not exist"));
 
@@ -49,8 +51,8 @@ public class PatientService {
     }
 
     @Transactional
-    public PatientDto update(String email, PatientDto dto) {
-        Patient existing = patientRepository.findByUserEmail(email)
+    public PatientDto update(Long id, PatientDto dto) {
+        Patient existing = patientRepository.findById(id)
                 .orElseThrow(() -> new PatientDoesNotExistsException("Patient does not exist"));
 
         existing.setFirstName(dto.getFirstName());
@@ -61,10 +63,16 @@ public class PatientService {
     }
 
     @Transactional
-    public void delete(String email) {
-        if (patientRepository.findByUserEmail(email).isEmpty()) {
+    public void delete(Long id) {
+        if (patientRepository.findById(id).isEmpty()) {
             throw new PatientDoesNotExistsException("Patient does not exist");
         }
-        patientRepository.deleteByUserEmail(email);
+        patientRepository.deleteById(id);
+    }
+
+    private List<Patient> search(String email) {
+        return Optional.ofNullable(email)
+                .map(patientEmail -> patientRepository.findAllByUserEmail(email))
+                .orElse(patientRepository.findAll());
     }
 }

@@ -4,6 +4,8 @@ import com.kanapa4.medical_clinic.model.Role;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.List;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -22,6 +24,6 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
-    @OneToOne(mappedBy = "user")
-    private Patient patient;
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<Patient> patients;
 }

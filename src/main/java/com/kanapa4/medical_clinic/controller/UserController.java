@@ -17,7 +17,6 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping
-    @ResponseStatus(HttpStatus.OK)
     public List<UserDto> findAll() {
         return userService.findAll();
     }
@@ -29,7 +28,6 @@ public class UserController {
     }
 
     @PutMapping("/{email}")
-    @ResponseStatus(HttpStatus.OK)
     public UserDto update(@PathVariable String email, @RequestBody UserDto patient) {
         return userService.update(email, patient);
     }
@@ -41,7 +39,6 @@ public class UserController {
     }
 
     @PatchMapping("/{email}")
-    @ResponseStatus(HttpStatus.OK)
     public void editPassword(@PathVariable String email, @RequestBody EditPasswordCommand password) {
         userService.editPassword(email, password.getPassword());
     }

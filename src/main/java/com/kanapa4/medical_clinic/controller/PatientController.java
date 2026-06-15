@@ -15,33 +15,30 @@ import java.util.List;
 public class PatientController {
     private final PatientService patientService;
 
-    @GetMapping("/all")
-    @ResponseStatus(HttpStatus.OK)
-    public List<PatientDto> findAll() {
-        return patientService.findAll();
+    @GetMapping
+    public List<PatientDto> findAll(@RequestParam String email) {
+        return patientService.findAll(email);
     }
 
-    @GetMapping("/{email}")
-    @ResponseStatus(HttpStatus.OK)
-    public PatientDto findByEmail(@PathVariable String email) {
-        return patientService.findByEmail(email);
+    @GetMapping("/{id}")
+    public PatientDto findByIdCardNo(@PathVariable Long id) {
+        return patientService.findById(id);
     }
 
-    @PostMapping()
+    @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public PatientDto add(@RequestBody PatientCreateCommand patient) {
         return patientService.create(patient);
     }
 
-    @PutMapping("/{email}")
-    @ResponseStatus(HttpStatus.OK)
-    public PatientDto update(@PathVariable String email, @RequestBody PatientDto patient) {
-        return patientService.update(email, patient);
+    @PutMapping("/{id}")
+    public PatientDto update(@PathVariable Long id, @RequestBody PatientDto patient) {
+        return patientService.update(id, patient);
     }
 
-    @DeleteMapping("/{email}")
+    @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable String email) {
-        patientService.delete(email);
+    public void delete(@PathVariable Long id) {
+        patientService.delete(id);
     }
 }
