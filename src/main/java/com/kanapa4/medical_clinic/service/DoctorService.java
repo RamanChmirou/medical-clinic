@@ -5,6 +5,7 @@ import com.kanapa4.medical_clinic.mapper.DoctorMapper;
 import com.kanapa4.medical_clinic.mapper.FacilityMapper;
 import com.kanapa4.medical_clinic.model.dto.DoctorCreateCommand;
 import com.kanapa4.medical_clinic.model.dto.DoctorDto;
+import com.kanapa4.medical_clinic.model.dto.PatientDto;
 import com.kanapa4.medical_clinic.model.entity.Doctor;
 import com.kanapa4.medical_clinic.model.entity.Facility;
 import com.kanapa4.medical_clinic.model.entity.User;
@@ -13,6 +14,10 @@ import com.kanapa4.medical_clinic.repository.FacilityRepository;
 import com.kanapa4.medical_clinic.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -28,10 +33,14 @@ public class DoctorService {
     private final DoctorMapper doctorMapper;
     private final FacilityMapper facilityMapper;
 
-    public List<DoctorDto> findAll() {
-        return doctorRepository.findAll().stream()
-                .map(doctorMapper::toDto)
-                .toList();
+    public Page<DoctorDto> getPaginatedDoctors(int page, int size, String sortBy) {
+        if (size > 30) {
+            size = 30;
+        }
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy).ascending());
+
+        return doctorRepository.findAll(pageable).map(doctorMapper::toDto);
     }
 
     public DoctorDto findById(Long id) {
@@ -61,14 +70,7 @@ public class DoctorService {
 
         existing.setFirstName(dto.getFirstName());
         existing.setLastName(dto.getLastName());
-        if (dto.getFacilities() != null) {
-            Set<Facility> mappedFacilities = dto.getFacilities().stream()
-                    .map(facilityMapper::toEntity)
-                    .collect(Collectors.toSet());
-            existing.setFacilities(mappedFacilities);
-        } else {
-            existing.setFacilities(null);
-        }
+
         existing.setSpecialization(dto.getSpecialization());
 
         return doctorMapper.toDto(existing);

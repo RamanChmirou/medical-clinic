@@ -5,10 +5,9 @@ import com.kanapa4.medical_clinic.model.dto.UserCreateCommand;
 import com.kanapa4.medical_clinic.model.dto.UserDto;
 import com.kanapa4.medical_clinic.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -17,8 +16,12 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping
-    public List<UserDto> findAll() {
-        return userService.findAll();
+    public Page<UserDto> getUsers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy
+    ) {
+        return userService.getPaginatedUsers(page, size, sortBy);
     }
 
     @PostMapping

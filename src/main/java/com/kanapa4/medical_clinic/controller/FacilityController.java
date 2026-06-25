@@ -4,10 +4,9 @@ import com.kanapa4.medical_clinic.model.dto.FacilityCreateCommand;
 import com.kanapa4.medical_clinic.model.dto.FacilityDto;
 import com.kanapa4.medical_clinic.service.FacilityService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/facilities")
@@ -16,8 +15,12 @@ public class FacilityController {
     private final FacilityService facilityService;
 
     @GetMapping
-    public List<FacilityDto> findAll() {
-        return facilityService.findAll();
+    public Page<FacilityDto> getUsers(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy
+    ) {
+        return facilityService.getPaginatedFacilities(page, size, sortBy);
     }
 
     @GetMapping("/{id}")

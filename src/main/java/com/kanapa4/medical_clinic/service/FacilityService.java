@@ -8,11 +8,13 @@ import com.kanapa4.medical_clinic.mapper.FacilityMapper;
 import com.kanapa4.medical_clinic.exception.FacilityDoesNotExistsException;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -20,10 +22,14 @@ public class FacilityService {
     private final FacilityRepository facilityRepository;
     private final FacilityMapper facilityMapper;
 
-    public List<FacilityDto> findAll() {
-        return facilityRepository.findAll().stream()
-                .map(facilityMapper::toDto)
-                .collect(Collectors.toList());
+    public Page<FacilityDto> getPaginatedFacilities(int page, int size, String sortBy) {
+        if (size > 30) {
+            size = 30;
+        }
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy).ascending());
+
+        return facilityRepository.findAll(pageable).map(facilityMapper::toDto);
     }
 
     public FacilityDto findById(Long id) {

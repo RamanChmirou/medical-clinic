@@ -4,10 +4,9 @@ import com.kanapa4.medical_clinic.model.dto.PatientCreateCommand;
 import com.kanapa4.medical_clinic.model.dto.PatientDto;
 import com.kanapa4.medical_clinic.service.PatientService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RequiredArgsConstructor
 @RestController
@@ -16,8 +15,12 @@ public class PatientController {
     private final PatientService patientService;
 
     @GetMapping
-    public List<PatientDto> findAll(@RequestParam String email) {
-        return patientService.findAll(email);
+    public Page<PatientDto> getPatients(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy
+    ) {
+        return patientService.getPaginatedPatients(page, size, sortBy);
     }
 
     @GetMapping("/{id}")

@@ -6,12 +6,17 @@ import com.kanapa4.medical_clinic.exception.UserDoesNotExistsException;
 import com.kanapa4.medical_clinic.mapper.PatientMapper;
 import com.kanapa4.medical_clinic.model.dto.PatientCreateCommand;
 import com.kanapa4.medical_clinic.model.dto.PatientDto;
+import com.kanapa4.medical_clinic.model.dto.UserDto;
 import com.kanapa4.medical_clinic.model.entity.Patient;
 import com.kanapa4.medical_clinic.model.entity.User;
 import com.kanapa4.medical_clinic.repository.PatientRepository;
 import com.kanapa4.medical_clinic.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -24,10 +29,14 @@ public class PatientService {
     private final PatientMapper patientMapper;
     private final UserRepository userRepository;
 
-    public List<PatientDto> findAll(String email) {
-        return search(email).stream()
-                .map(patientMapper::toDto)
-                .toList();
+    public Page<PatientDto> getPaginatedPatients(int page, int size, String sortBy) {
+        if (size > 30) {
+            size = 30;
+        }
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy).ascending());
+
+        return patientRepository.findAll(pageable).map(patientMapper::toDto);
     }
 
     public PatientDto findById(Long id) {
