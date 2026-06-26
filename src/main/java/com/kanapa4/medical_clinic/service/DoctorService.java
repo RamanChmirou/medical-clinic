@@ -20,9 +20,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -31,15 +28,12 @@ public class DoctorService {
     private final UserRepository userRepository;
     private final FacilityRepository facilityRepository;
     private final DoctorMapper doctorMapper;
-    private final FacilityMapper facilityMapper;
 
     public Page<DoctorDto> getPaginatedDoctors(int page, int size, String sortBy) {
         if (size > 30) {
             size = 30;
         }
-
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy).ascending());
-
         return doctorRepository.findAll(pageable).map(doctorMapper::toDto);
     }
 
@@ -58,7 +52,6 @@ public class DoctorService {
         }
 
         Doctor doctor = Doctor.create(dto, user);
-
         Doctor savedDoctor = doctorRepository.save(doctor);
         return doctorMapper.toDto(savedDoctor);
     }
@@ -70,7 +63,6 @@ public class DoctorService {
 
         existing.setFirstName(dto.getFirstName());
         existing.setLastName(dto.getLastName());
-
         existing.setSpecialization(dto.getSpecialization());
 
         return doctorMapper.toDto(existing);

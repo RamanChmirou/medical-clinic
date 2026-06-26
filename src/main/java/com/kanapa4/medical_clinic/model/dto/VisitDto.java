@@ -13,6 +13,7 @@ public class VisitDto {
     private Integer durationInMinutes;
     private Long doctorId;
     private Long patientId;
+    private Long facilityId;
 
     public LocalDateTime getEndTime() {
         if (this.dateTime == null || this.durationInMinutes == null) {

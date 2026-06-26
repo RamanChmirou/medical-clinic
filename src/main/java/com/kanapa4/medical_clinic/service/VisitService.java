@@ -5,6 +5,7 @@ import com.kanapa4.medical_clinic.model.entity.*;
 import com.kanapa4.medical_clinic.repository.*;
 import com.kanapa4.medical_clinic.mapper.VisitMapper;
 import com.kanapa4.medical_clinic.exception.*;
+import com.kanapa4.medical_clinic.validator.VisitValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -24,14 +25,14 @@ public class VisitService {
     private final DoctorRepository doctorRepository;
     private final PatientRepository patientRepository;
     private final VisitMapper visitMapper;
+    private final FacilityRepository facilityRepository;
+    private final VisitValidator visitValidator;
 
     public Page<VisitDto> getPaginatedVisits(int page, int size, String sortBy) {
         if (size > 30) {
             size = 30;
         }
-
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy).ascending());
-
         return visitRepository.findAll(pageable).map(visitMapper::toDto);
     }
 
@@ -41,17 +42,18 @@ public class VisitService {
         Integer duration = dto.getDurationInMinutes();
         Long doctorId = dto.getDoctorId();
 
-        validateVisitTimeAndDuration(appointmentTime, duration);
-
-        checkDoctorAvailability(doctorId, appointmentTime, duration);
+        visitValidator.validateVisitTimeAndDuration(dto.getDateTime(), dto.getDurationInMinutes());
+        visitValidator.checkDoctorAvailability(dto.getDoctorId(), dto.getDateTime(), dto.getDurationInMinutes(), null);
 
         Doctor doctor = getDoctorById(doctorId);
+        Facility facility = getFacilityById(dto.getFacilityId());
 
         Visit visit = Visit.builder()
                 .dateTime(appointmentTime)
                 .durationInMinutes(duration)
                 .doctor(doctor)
                 .patient(null)
+                .facility(facility)
                 .build();
 
         return visitMapper.toDto(visitRepository.save(visit));
@@ -60,29 +62,15 @@ public class VisitService {
     @Transactional
     public VisitDto updateVisit(Long id, VisitCreateCommand dto) {
         Visit existingVisit = visitRepository.findById(id)
-                .orElseThrow(() -> new VisitDoesNotExistsException("Visit does not exists."));
+                .orElseThrow(() -> new VisitDoesNotExistsException("Visit does not exist."));
 
-        LocalDateTime newAppointmentTime = dto.getDateTime();
-        Integer newDuration = dto.getDurationInMinutes();
-        Long newDoctorId = dto.getDoctorId();
+        visitValidator.validateVisitTimeAndDuration(dto.getDateTime(), dto.getDurationInMinutes());
+        visitValidator.checkDoctorAvailability(dto.getDoctorId(), dto.getDateTime(), dto.getDurationInMinutes(), id);
 
-        validateVisitTimeAndDuration(newAppointmentTime, newDuration);
+        existingVisit.setDateTime(dto.getDateTime());
+        existingVisit.setDurationInMinutes(dto.getDurationInMinutes());
 
-        if (!existingVisit.getDoctor().getId().equals(newDoctorId) ||
-                !existingVisit.getDateTime().equals(newAppointmentTime) ||
-                !existingVisit.getDurationInMinutes().equals(newDuration)) {
-
-            checkDoctorAvailability(newDoctorId, newAppointmentTime, newDuration);
-        }
-
-        if (!existingVisit.getDoctor().getId().equals(newDoctorId)) {
-            Doctor newDoctor = getDoctorById(newDoctorId);
-            existingVisit.setDoctor(newDoctor);
-        }
-
-        existingVisit.setDateTime(newAppointmentTime);
-        existingVisit.setDurationInMinutes(newDuration);
-
+        updateDoctorIfNeeded(existingVisit, dto.getDoctorId());
         assignPatientToVisit(existingVisit, dto.getPatientId());
 
         return visitMapper.toDto(visitRepository.save(existingVisit));
@@ -108,7 +96,6 @@ public class VisitService {
         if (visit.getPatient() != null) {
             throw new VisitUnavailableException("This visit is already booked.");
         }
-
         Patient patient = patientRepository.findById(patientId)
                 .orElseThrow(() -> new PatientDoesNotExistsException("Patient does not exist."));
 
@@ -127,43 +114,14 @@ public class VisitService {
                 .collect(Collectors.toList());
     }
 
-    private void validateVisitTimeAndDuration(LocalDateTime appointmentTime, Integer duration) {
-        if (appointmentTime.isBefore(LocalDateTime.now())) {
-            throw new InvalidVisitException("Cannot create a visit in the past.");
-        }
-
-        if (appointmentTime.getMinute() % 15 != 0 || appointmentTime.getSecond() != 0) {
-            throw new InvalidVisitException("Visits can only be scheduled on the quarter-hour (e.g., 14:00, 14:15).");
-        }
-
-        if (duration == null || duration <= 0 || duration % 15 != 0) {
-            throw new InvalidVisitException("Visit duration must be a positive multiple of 15 minutes.");
-        }
-    }
-
-    private void checkDoctorAvailability(Long doctorId, LocalDateTime appointmentTime, Integer duration) {
-        LocalDateTime endTime = appointmentTime.plusMinutes(duration);
-
-        LocalDateTime dayStart = appointmentTime.toLocalDate().atStartOfDay();
-        LocalDateTime dayEnd = dayStart.plusDays(1);
-
-        List<Visit> doctorsVisitsForDay = visitRepository.findAllByDoctorIdAndDate(doctorId, dayStart, dayEnd);
-
-        boolean hasOverlap = doctorsVisitsForDay.stream().anyMatch(existingVisit -> {
-            LocalDateTime existingStart = existingVisit.getDateTime();
-            LocalDateTime existingEnd = existingStart.plusMinutes(existingVisit.getDurationInMinutes());
-
-            return appointmentTime.isBefore(existingEnd) && existingStart.isBefore(endTime);
-        });
-
-        if (hasOverlap) {
-            throw new VisitAlreadyExistsException("The doctor already has a visit scheduled that overlaps with this time interval.");
-        }
-    }
-
     private Doctor getDoctorById(Long doctorId) {
         return doctorRepository.findById(doctorId)
                 .orElseThrow(() -> new DoctorDoesNotExistsException("Doctor does not exist."));
+    }
+
+    private Facility getFacilityById(Long facilityId) {
+        return facilityRepository.findById(facilityId)
+                .orElseThrow(() -> new FacilityDoesNotExistsException("Facility does not exist."));
     }
 
     private void assignPatientToVisit(Visit visit, Long patientId) {
@@ -173,6 +131,14 @@ public class VisitService {
             visit.setPatient(patient);
         } else {
             visit.setPatient(null);
+        }
+    }
+
+    private void updateDoctorIfNeeded(Visit visit, Long newDoctorId) {
+        if (!visit.getDoctor().getId().equals(newDoctorId)) {
+            Doctor newDoctor = doctorRepository.findById(newDoctorId)
+                    .orElseThrow(() -> new DoctorDoesNotExistsException("Doctor does not exist."));
+            visit.setDoctor(newDoctor);
         }
     }
 }

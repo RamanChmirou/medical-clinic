@@ -27,9 +27,7 @@ public class UserService {
         if (size > 30) {
             size = 30;
         }
-
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy).ascending());
-
         return userRepository.findAll(pageable).map(userMapper::toDto);
     }
 

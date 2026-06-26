@@ -30,6 +30,10 @@ public class Visit {
     @JoinColumn(name = "patient_id")
     private Patient patient;
 
+    @ManyToOne
+    @JoinColumn(name = "facility_id", nullable = false)
+    private Facility facility;
+
     public LocalDateTime getEndTime() {
         return this.dateTime.plusMinutes(this.durationInMinutes);
     }

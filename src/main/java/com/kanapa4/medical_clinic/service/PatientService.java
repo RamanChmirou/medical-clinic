@@ -33,9 +33,7 @@ public class PatientService {
         if (size > 30) {
             size = 30;
         }
-
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy).ascending());
-
         return patientRepository.findAll(pageable).map(patientMapper::toDto);
     }
 
@@ -77,11 +75,5 @@ public class PatientService {
             throw new PatientDoesNotExistsException("Patient does not exist");
         }
         patientRepository.deleteById(id);
-    }
-
-    private List<Patient> search(String email) {
-        return Optional.ofNullable(email)
-                .map(patientEmail -> patientRepository.findAllByUserEmail(email))
-                .orElse(patientRepository.findAll());
     }
 }

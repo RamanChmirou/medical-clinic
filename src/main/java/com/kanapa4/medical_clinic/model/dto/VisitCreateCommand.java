@@ -12,4 +12,5 @@ public class VisitCreateCommand {
     private Integer durationInMinutes;
     private Long doctorId;
     private Long patientId;
+    private Long facilityId;
 }

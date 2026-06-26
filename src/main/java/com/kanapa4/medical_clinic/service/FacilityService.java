@@ -26,9 +26,7 @@ public class FacilityService {
         if (size > 30) {
             size = 30;
         }
-
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy).ascending());
-
         return facilityRepository.findAll(pageable).map(facilityMapper::toDto);
     }
 
@@ -41,7 +39,6 @@ public class FacilityService {
     @Transactional
     public FacilityDto create(FacilityCreateCommand command) {
         Facility facility = Facility.create(command);
-
         Facility savedFacility = facilityRepository.save(facility);
         return facilityMapper.toDto(savedFacility);
     }
@@ -50,7 +47,6 @@ public class FacilityService {
     public FacilityDto update(Long id, FacilityDto dto) {
         Facility existing = facilityRepository.findById(id)
                 .orElseThrow(() -> new FacilityDoesNotExistsException("Facility does not exist"));
-
         existing.update(dto);
 
         Facility savedFacility = facilityRepository.save(existing);
@@ -61,9 +57,7 @@ public class FacilityService {
     public void delete(Long id) {
         Facility facility = facilityRepository.findById(id)
                 .orElseThrow(() -> new FacilityDoesNotExistsException("Facility does not exist"));
-
         facility.getDoctors().forEach(doctor -> doctor.getFacilities().remove(facility));
-
         facilityRepository.deleteById(id);
     }
 }
