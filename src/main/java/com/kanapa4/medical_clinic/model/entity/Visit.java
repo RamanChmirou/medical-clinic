@@ -2,6 +2,7 @@ package com.kanapa4.medical_clinic.model.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -33,8 +34,4 @@ public class Visit {
     @ManyToOne
     @JoinColumn(name = "facility_id", nullable = false)
     private Facility facility;
-
-    public LocalDateTime getEndTime() {
-        return this.dateTime.plusMinutes(this.durationInMinutes);
-    }
 }

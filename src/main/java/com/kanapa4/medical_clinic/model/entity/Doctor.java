@@ -30,6 +30,7 @@ public class Doctor {
 
     private Specialization specialization;
 
+    @Builder.Default
     @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
             name = "doctor_facility",

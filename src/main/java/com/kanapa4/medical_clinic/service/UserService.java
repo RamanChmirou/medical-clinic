@@ -3,7 +3,6 @@ package com.kanapa4.medical_clinic.service;
 import com.kanapa4.medical_clinic.exception.UserAlreadyExistsException;
 import com.kanapa4.medical_clinic.exception.UserDoesNotExistsException;
 import com.kanapa4.medical_clinic.mapper.UserMapper;
-import com.kanapa4.medical_clinic.model.Role;
 import com.kanapa4.medical_clinic.model.dto.UserCreateCommand;
 import com.kanapa4.medical_clinic.model.dto.UserDto;
 import com.kanapa4.medical_clinic.model.entity.User;
@@ -15,7 +14,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-
 
 @Service
 @RequiredArgsConstructor
@@ -50,6 +48,10 @@ public class UserService {
     public UserDto update(String email, UserDto dto) {
         User existing = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserDoesNotExistsException("User does not exist"));
+
+        if (!existing.getEmail().equals(dto.getEmail()) && userRepository.findByEmail(dto.getEmail()).isPresent()) {
+            throw new UserAlreadyExistsException("New email is already in use");
+        }
 
         existing.setEmail(dto.getEmail());
         existing.setRole(dto.getRole());

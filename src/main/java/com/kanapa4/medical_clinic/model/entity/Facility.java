@@ -31,6 +31,7 @@ public class Facility {
 
     private String buildingNumber;
 
+    @Builder.Default
     @ManyToMany(mappedBy = "facilities")
     private Set<Doctor> doctors = new HashSet<>();
 

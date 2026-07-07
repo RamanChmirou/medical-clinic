@@ -1,10 +1,17 @@
 package com.kanapa4.medical_clinic.service;
 
-import com.kanapa4.medical_clinic.model.dto.*;
-import com.kanapa4.medical_clinic.model.entity.*;
-import com.kanapa4.medical_clinic.repository.*;
-import com.kanapa4.medical_clinic.mapper.VisitMapper;
 import com.kanapa4.medical_clinic.exception.*;
+import com.kanapa4.medical_clinic.mapper.VisitMapper;
+import com.kanapa4.medical_clinic.model.dto.VisitCreateCommand;
+import com.kanapa4.medical_clinic.model.dto.VisitDto;
+import com.kanapa4.medical_clinic.model.entity.Doctor;
+import com.kanapa4.medical_clinic.model.entity.Facility;
+import com.kanapa4.medical_clinic.model.entity.Patient;
+import com.kanapa4.medical_clinic.model.entity.Visit;
+import com.kanapa4.medical_clinic.repository.DoctorRepository;
+import com.kanapa4.medical_clinic.repository.FacilityRepository;
+import com.kanapa4.medical_clinic.repository.PatientRepository;
+import com.kanapa4.medical_clinic.repository.VisitRepository;
 import com.kanapa4.medical_clinic.validator.VisitValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -55,8 +62,8 @@ public class VisitService {
                 .patient(null)
                 .facility(facility)
                 .build();
-
-        return visitMapper.toDto(visitRepository.save(visit));
+        Visit savedVisit = visitRepository.save(visit);
+        return visitMapper.toDto(savedVisit);
     }
 
     @Transactional
@@ -73,7 +80,8 @@ public class VisitService {
         updateDoctorIfNeeded(existingVisit, dto.getDoctorId());
         assignPatientToVisit(existingVisit, dto.getPatientId());
 
-        return visitMapper.toDto(visitRepository.save(existingVisit));
+        Visit savedVisit = visitRepository.save(existingVisit);
+        return visitMapper.toDto(savedVisit);
     }
 
     @Transactional

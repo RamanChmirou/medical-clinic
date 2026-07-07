@@ -1,5 +1,7 @@
 package com.kanapa4.medical_clinic.model.dto;
 
+import jdk.jfr.BooleanFlag;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -7,6 +9,7 @@ import java.time.LocalDate;
 
 @Getter
 @Setter
+@Builder
 public class PatientCreateCommand {
     private String firstName;
     private String lastName;

@@ -6,7 +6,6 @@ import com.kanapa4.medical_clinic.exception.UserDoesNotExistsException;
 import com.kanapa4.medical_clinic.mapper.PatientMapper;
 import com.kanapa4.medical_clinic.model.dto.PatientCreateCommand;
 import com.kanapa4.medical_clinic.model.dto.PatientDto;
-import com.kanapa4.medical_clinic.model.dto.UserDto;
 import com.kanapa4.medical_clinic.model.entity.Patient;
 import com.kanapa4.medical_clinic.model.entity.User;
 import com.kanapa4.medical_clinic.repository.PatientRepository;
@@ -18,9 +17,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -37,6 +33,15 @@ public class PatientService {
         return patientRepository.findAll(pageable).map(patientMapper::toDto);
     }
 
+    @Transactional
+    public PatientDto createPatientForUser(String userEmail, PatientCreateCommand command) {
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new UserDoesNotExistsException("User not found"));
+        Patient newPatient = Patient.create(command, user);
+        Patient savedPatient = patientRepository.save(newPatient);
+        return patientMapper.toDto(savedPatient);
+    }
+
     public PatientDto findById(Long id) {
         Patient patient = patientRepository.findById(id)
                 .orElseThrow(() -> new PatientDoesNotExistsException("Patient does not exist"));
@@ -47,12 +52,9 @@ public class PatientService {
         if (patientRepository.findByIdCardNo(dto.getIdCardNo()).isPresent()) {
             throw new PatientAlreadyExistsException("Patient already exists");
         }
-
         User user = userRepository.findById(dto.getUserId())
                 .orElseThrow(() -> new UserDoesNotExistsException("User does not exist"));
-
         Patient patient = Patient.create(dto, user);
-
         Patient savedPatient = patientRepository.save(patient);
         return patientMapper.toDto(savedPatient);
     }
@@ -65,8 +67,8 @@ public class PatientService {
         existing.setFirstName(dto.getFirstName());
         existing.setLastName(dto.getLastName());
         existing.setPhoneNumber(dto.getPhoneNumber());
-
-        return patientMapper.toDto(existing);
+        Patient savedPatient = patientRepository.save(existing);
+        return patientMapper.toDto(savedPatient);
     }
 
     @Transactional

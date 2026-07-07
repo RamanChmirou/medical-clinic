@@ -1,11 +1,12 @@
 package com.kanapa4.medical_clinic.service;
 
-import com.kanapa4.medical_clinic.exception.*;
+import com.kanapa4.medical_clinic.exception.DoctorAlreadyExistsException;
+import com.kanapa4.medical_clinic.exception.DoctorDoesNotExistsException;
+import com.kanapa4.medical_clinic.exception.FacilityDoesNotExistsException;
+import com.kanapa4.medical_clinic.exception.UserDoesNotExistsException;
 import com.kanapa4.medical_clinic.mapper.DoctorMapper;
-import com.kanapa4.medical_clinic.mapper.FacilityMapper;
 import com.kanapa4.medical_clinic.model.dto.DoctorCreateCommand;
 import com.kanapa4.medical_clinic.model.dto.DoctorDto;
-import com.kanapa4.medical_clinic.model.dto.PatientDto;
 import com.kanapa4.medical_clinic.model.entity.Doctor;
 import com.kanapa4.medical_clinic.model.entity.Facility;
 import com.kanapa4.medical_clinic.model.entity.User;
@@ -43,15 +44,15 @@ public class DoctorService {
         return doctorMapper.toDto(doctor);
     }
 
-    public DoctorDto create(DoctorCreateCommand dto) {
-        User user = userRepository.findById(dto.getUserId())
+    public DoctorDto create(DoctorCreateCommand command) {
+        User user = userRepository.findById(command.getUserId())
                 .orElseThrow(() -> new UserDoesNotExistsException("User does not exist"));
 
-        if (doctorRepository.findByUserId(dto.getUserId()).isPresent()) {
+        if (doctorRepository.findByUserId(command.getUserId()).isPresent()) {
             throw new DoctorAlreadyExistsException("This user is already a doctor");
         }
 
-        Doctor doctor = Doctor.create(dto, user);
+        Doctor doctor = Doctor.create(command, user);
         Doctor savedDoctor = doctorRepository.save(doctor);
         return doctorMapper.toDto(savedDoctor);
     }
@@ -64,8 +65,8 @@ public class DoctorService {
         existing.setFirstName(dto.getFirstName());
         existing.setLastName(dto.getLastName());
         existing.setSpecialization(dto.getSpecialization());
-
-        return doctorMapper.toDto(existing);
+        Doctor updatedDoctor = doctorRepository.save(existing);
+        return doctorMapper.toDto(updatedDoctor);
     }
 
     @Transactional
@@ -84,8 +85,8 @@ public class DoctorService {
                 .orElseThrow(() -> new FacilityDoesNotExistsException("Facility does not exist"));
 
         doctor.addFacility(facility);
-
-        return doctorMapper.toDto(doctor);
+        Doctor savedDoctor = doctorRepository.save(doctor);
+        return doctorMapper.toDto(savedDoctor);
     }
 
     @Transactional
@@ -96,7 +97,7 @@ public class DoctorService {
                 .orElseThrow(() -> new FacilityDoesNotExistsException("Facility does not exist"));
 
         doctor.removeFacility(facility);
-
-        return doctorMapper.toDto(doctor);
+        Doctor savedDoctor = doctorRepository.save(doctor);
+        return doctorMapper.toDto(savedDoctor);
     }
 }
