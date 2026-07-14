@@ -85,7 +85,7 @@ public class VisitService {
     }
 
     @Transactional
-    public void deleteVisit(Long id) {
+    public void delete(Long id) {
         if (!visitRepository.existsById(id)) {
             throw new VisitDoesNotExistsException("Visit does not exist.");
         }

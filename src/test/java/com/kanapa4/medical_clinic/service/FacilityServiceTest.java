@@ -1,5 +1,7 @@
 package com.kanapa4.medical_clinic.service;
 
+import com.kanapa4.medical_clinic.exception.FacilityAlreadyExistsException;
+import com.kanapa4.medical_clinic.exception.FacilityDoesNotExistsException;
 import com.kanapa4.medical_clinic.mapper.FacilityMapper;
 import com.kanapa4.medical_clinic.model.dto.FacilityCreateCommand;
 import com.kanapa4.medical_clinic.model.dto.FacilityDto;
@@ -8,16 +10,15 @@ import com.kanapa4.medical_clinic.repository.FacilityRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.*;
+import org.springframework.http.HttpStatus;
 
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertAll;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mapstruct.factory.Mappers.getMapper;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class FacilityServiceTest {
     private FacilityRepository facilityRepository;
@@ -157,6 +158,93 @@ public class FacilityServiceTest {
                 () -> assertEquals(facilityToUpdate.getZipCode(), result.getZipCode()),
                 () -> assertEquals(facilityToUpdate.getStreet(), result.getStreet()),
                 () -> assertEquals(facilityToUpdate.getBuildingNumber(), result.getBuildingNumber())
+        );
+    }
+
+    @Test
+    void findById_FacilityDoesNotExists_ThrowFacilityDoesNotExistsException() {
+        //given
+        Long id = 1L;
+        when(facilityRepository.findById(id)).thenReturn(Optional.empty());
+        //when
+        FacilityDoesNotExistsException result = assertThrows(FacilityDoesNotExistsException.class,
+                () -> facilityService.findById(id));
+        //then
+        assertAll(
+                () -> assertEquals("Facility does not exist", result.getMessage()),
+                () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
+        );
+    }
+
+    @Test
+    void create_FacilityAlreadyExists_ThrowFacilityAlreadyExistsException() {
+        //given
+        FacilityCreateCommand command = FacilityCreateCommand.builder()
+                .name("falcons")
+                .city("Cologne")
+                .zipCode("228-00")
+                .street("zonik")
+                .buildingNumber("12A")
+                .build();
+        Facility facility = Facility.builder()
+                .id(5L)
+                .name("navi")
+                .city("Cologne")
+                .zipCode("007-00")
+                .street("bl1ad")
+                .buildingNumber("21")
+                .build();
+        when(facilityRepository.findByName(command.getName())).thenReturn(Optional.of(facility));
+        //when
+        FacilityAlreadyExistsException result = assertThrows(FacilityAlreadyExistsException.class,
+                () -> facilityService.create(command));
+        //then
+        assertAll(
+                () -> assertEquals("Facility already exists", result.getMessage()),
+                () -> assertEquals(HttpStatus.CONFLICT, result.getHttpStatus())
+        );
+    }
+
+    @Test
+    void update_FacilityDoesNotExists_ThrowFacilityDoesNotExistsException() {
+        //given
+        Long id = 1L;
+        FacilityDto facilityDto = FacilityDto.builder()
+                .id(5L)
+                .name("navi")
+                .city("Cologne")
+                .zipCode("007-00")
+                .street("bl1ad")
+                .buildingNumber("21")
+                .build();
+        when(facilityRepository.findById(id)).thenReturn(Optional.empty());
+        //when
+        FacilityDoesNotExistsException result = assertThrows(FacilityDoesNotExistsException.class,
+                () -> facilityService.update(id, facilityDto));
+        //then
+        assertAll(
+                () -> assertEquals("Facility does not exist", result.getMessage()),
+                () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
+        );
+    }
+
+    @Test
+    void delete_DataCorrect_DeleteFacility() {
+        when(facilityRepository.findById(1L)).thenReturn(Optional.of(Facility.builder().build()));
+        facilityService.delete(1L);
+        verify(facilityRepository, times(1)).findById(1L);
+        verify(facilityRepository, times(1)).deleteById(1L);
+        verifyNoMoreInteractions(facilityRepository);
+    }
+
+    @Test
+    void delete_FacilityDoesNotExists_ThrowFacilityDoesNotExistsException() {
+        when(facilityRepository.findById(1L)).thenReturn(Optional.empty());
+        FacilityDoesNotExistsException result = assertThrows(FacilityDoesNotExistsException.class,
+                () -> facilityService.delete(1L));
+        assertAll(
+                () -> assertEquals("Facility does not exist", result.getMessage()),
+                () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
         );
     }
 }

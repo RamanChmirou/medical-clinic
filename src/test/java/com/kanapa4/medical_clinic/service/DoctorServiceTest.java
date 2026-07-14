@@ -1,5 +1,9 @@
 package com.kanapa4.medical_clinic.service;
 
+import com.kanapa4.medical_clinic.exception.DoctorAlreadyExistsException;
+import com.kanapa4.medical_clinic.exception.DoctorDoesNotExistsException;
+import com.kanapa4.medical_clinic.exception.FacilityDoesNotExistsException;
+import com.kanapa4.medical_clinic.exception.UserDoesNotExistsException;
 import com.kanapa4.medical_clinic.mapper.DoctorMapper;
 import com.kanapa4.medical_clinic.mapper.DoctorMapperImpl;
 import com.kanapa4.medical_clinic.mapper.FacilityMapper;
@@ -18,6 +22,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 import org.springframework.data.domain.*;
+import org.springframework.http.HttpStatus;
 
 import java.util.HashSet;
 import java.util.List;
@@ -26,8 +31,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class DoctorServiceTest {
     private DoctorRepository doctorRepository;
@@ -248,5 +252,182 @@ public class DoctorServiceTest {
                 () -> assertEquals(doctor.getSpecialization(), result.getSpecialization()),
                 () -> assertEquals(0, result.getFacilities().size())
         );
+    }
+
+    @Test
+    void findById_DoctorDoesNotExists_ThrowDoctorDoesNotExistsException() {
+        //given
+        Long id = 1L;
+        when(doctorRepository.findById(id)).thenReturn(Optional.empty());
+        //when
+        DoctorDoesNotExistsException result = assertThrows(DoctorDoesNotExistsException.class,
+                () -> doctorService.findById(id));
+        //then
+        assertAll(
+                () -> assertEquals("Doctor does not exist", result.getMessage()),
+                () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
+
+        );
+    }
+
+    @Test
+    void create_UserDoesNotExists_ThrowUserDoesNotExistsException() {
+        //given
+        DoctorCreateCommand command = DoctorCreateCommand.builder()
+                .userId(1L)
+                .build();
+        when(userRepository.findById(command.getUserId())).thenReturn(Optional.empty());
+        //when
+        UserDoesNotExistsException result = assertThrows(UserDoesNotExistsException.class,
+                () -> doctorService.create(command));
+        //then
+        assertAll(
+                () -> assertEquals("User does not exist", result.getMessage()),
+                () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
+
+        );
+    }
+
+    @Test
+    void create_DoctorAlreadyExists_ThrowDoctorAlreadyExistsException() {
+        //given
+        User user = User.builder()
+                .id(1L)
+                .build();
+        DoctorCreateCommand command = DoctorCreateCommand.builder()
+                .userId(1L)
+                .build();
+        Doctor doctor = Doctor.builder()
+                .id(1L)
+                .build();
+        when(userRepository.findById(command.getUserId())).thenReturn(Optional.of(user));
+        when(doctorRepository.findByUserId(command.getUserId())).thenReturn(Optional.of(doctor));
+        //when
+        DoctorAlreadyExistsException result = assertThrows(DoctorAlreadyExistsException.class,
+                () -> doctorService.create(command));
+        //then
+        assertAll(
+                () -> assertEquals("This user is already a doctor", result.getMessage()),
+                () -> assertEquals(HttpStatus.CONFLICT, result.getHttpStatus())
+
+        );
+    }
+
+    @Test
+    void update_DoctorDoesNotExists_ThrowDoctorDoesNotExistsException() {
+        //given
+        Long id = 1L;
+        DoctorDto doctorDto = DoctorDto.builder()
+                .specialization(Specialization.CARDIOLOGY)
+                .firstName("Nikola")
+                .lastName("Kovach")
+                .build();
+        when(doctorRepository.findById(id)).thenReturn(Optional.empty());
+        //when
+        DoctorDoesNotExistsException result = assertThrows(DoctorDoesNotExistsException.class,
+                () -> doctorService.update(id, doctorDto));
+        //then
+        assertAll(
+                () -> assertEquals("Doctor does not exist", result.getMessage()),
+                () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
+
+        );
+    }
+
+    @Test
+    void addFacilityToDoctor_DoctorDoesNotExists_ThrowDoctorDoesNotExistsException() {
+        //given
+        Long doctorId = 1L;
+        Long facilityId = 1L;
+        when(doctorRepository.findById(doctorId)).thenReturn(Optional.empty());
+        //when
+        DoctorDoesNotExistsException result = assertThrows(DoctorDoesNotExistsException.class,
+                () -> doctorService.addFacilityToDoctor(doctorId, facilityId));
+        //then
+        assertAll(
+                () -> assertEquals("Doctor does not exist", result.getMessage()),
+                () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
+
+        );
+    }
+
+    @Test
+    void addFacilityToDoctor_FacilityDoesNotExists_ThrowFacilityDoesNotExistsException() {
+        //given
+        Long doctorId = 1L;
+        Long facilityId = 1L;
+        Doctor doctor = Doctor.builder()
+                .id(1L)
+                .build();
+        when(doctorRepository.findById(doctorId)).thenReturn(Optional.of(doctor));
+        when(facilityRepository.findById(facilityId)).thenReturn(Optional.empty());
+        //when
+        FacilityDoesNotExistsException result = assertThrows(FacilityDoesNotExistsException.class,
+                () -> doctorService.addFacilityToDoctor(doctorId, facilityId));
+        //then
+        assertAll(
+                () -> assertEquals("Facility does not exist", result.getMessage()),
+                () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
+
+        );
+    }
+
+    @Test
+    void removeFacilityFromDoctor_DoctorDoesNotExists_ThrowDoctorDoesNotExistsException() {
+        //given
+        Long doctorId = 1L;
+        Long facilityId = 1L;
+        when(doctorRepository.findById(doctorId)).thenReturn(Optional.empty());
+        //when
+        DoctorDoesNotExistsException result = assertThrows(DoctorDoesNotExistsException.class,
+                () -> doctorService.removeFacilityFromDoctor(doctorId, facilityId));
+        //then
+        assertAll(
+                () -> assertEquals("Doctor does not exist", result.getMessage()),
+                () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
+
+        );
+    }
+
+    @Test
+    void removeFacilityFromDoctor_FacilityDoesNotExists_ThrowFacilityDoesNotExistsException() {
+        //given
+        Long doctorId = 1L;
+        Long facilityId = 1L;
+        Doctor doctor = Doctor.builder()
+                .id(1L)
+                .build();
+        when(doctorRepository.findById(doctorId)).thenReturn(Optional.of(doctor));
+        when(facilityRepository.findById(facilityId)).thenReturn(Optional.empty());
+        //when
+        FacilityDoesNotExistsException result = assertThrows(FacilityDoesNotExistsException.class,
+                () -> doctorService.removeFacilityFromDoctor(doctorId, facilityId));
+        //then
+        assertAll(
+                () -> assertEquals("Facility does not exist", result.getMessage()),
+                () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
+
+        );
+    }
+
+    @Test
+    void delete_DoctorDoesNotExists_ThrowDoctorDoesNotExistsException() {
+        when(doctorRepository.findById(1L)).thenReturn(Optional.empty());
+        DoctorDoesNotExistsException result = assertThrows(DoctorDoesNotExistsException.class,
+                () -> doctorService.delete(1L));
+        assertAll(
+                () -> assertEquals("Doctor does not exist", result.getMessage()),
+                () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
+        );
+    }
+
+    @Test
+    void delete_DataCorrect_DeleteDoctor() {
+        Doctor doctor = Doctor.builder().build();
+        when(doctorRepository.findById(1L)).thenReturn(Optional.of(doctor));
+        doctorService.delete(1L);
+        verify(doctorRepository, times(1)).findById(1L);
+        verify(doctorRepository, times(1)).deleteById(1L);
+        verifyNoMoreInteractions(doctorRepository);
     }
 }

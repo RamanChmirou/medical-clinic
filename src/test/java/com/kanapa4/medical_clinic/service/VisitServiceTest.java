@@ -1,5 +1,6 @@
 package com.kanapa4.medical_clinic.service;
 
+import com.kanapa4.medical_clinic.exception.*;
 import com.kanapa4.medical_clinic.mapper.VisitMapper;
 import com.kanapa4.medical_clinic.model.dto.VisitCreateCommand;
 import com.kanapa4.medical_clinic.model.dto.VisitDto;
@@ -15,17 +16,16 @@ import com.kanapa4.medical_clinic.validator.VisitValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.*;
+import org.springframework.http.HttpStatus;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertAll;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mapstruct.factory.Mappers.getMapper;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class VisitServiceTest {
     private VisitRepository visitRepository;
@@ -180,6 +180,203 @@ public class VisitServiceTest {
                 () -> assertEquals(1, result.size()),
                 () -> assertEquals(visit.getDateTime(), result.getFirst().getDateTime()),
                 () -> assertEquals(visit.getDurationInMinutes(), result.getFirst().getDurationInMinutes())
+        );
+    }
+
+    @Test
+    void createVisitSlot_DoctorDoesNotExist_ThrowDoctorDoesNotExistsException() {
+        //given
+        VisitCreateCommand command = VisitCreateCommand.builder()
+                .doctorId(1L)
+                .build();
+        when(doctorRepository.findById(command.getDoctorId())).thenReturn(Optional.empty());
+        //when
+        DoctorDoesNotExistsException result = assertThrows(DoctorDoesNotExistsException.class,
+                () -> visitService.createVisitSlot(command));
+        //then
+        assertAll(
+                () -> assertEquals("Doctor does not exist.", result.getMessage()),
+                () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
+        );
+    }
+
+    @Test
+    void createVisitSlot_FacilityDoesNotExist_ThrowFacilityDoesNotExistsException() {
+        //given
+        VisitCreateCommand command = VisitCreateCommand.builder()
+                .doctorId(1L)
+                .facilityId(2L)
+                .build();
+        Doctor doctor = Doctor.builder()
+                .id(1L)
+                .build();
+        when(doctorRepository.findById(command.getDoctorId())).thenReturn(Optional.of(doctor));
+        when(facilityRepository.findById(command.getFacilityId())).thenReturn(Optional.empty());
+        //when
+        FacilityDoesNotExistsException result = assertThrows(FacilityDoesNotExistsException.class,
+                () -> visitService.createVisitSlot(command));
+        //then
+        assertAll(
+                () -> assertEquals("Facility does not exist.", result.getMessage()),
+                () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
+        );
+    }
+
+    @Test
+    void updateVisit_VisitDoesNotExist_ThrowVisitDoesNotExistsException() {
+        //given
+        VisitCreateCommand command = VisitCreateCommand.builder()
+                .build();
+        when(visitRepository.findById(1L)).thenReturn(Optional.empty());
+        //when
+        VisitDoesNotExistsException result = assertThrows(VisitDoesNotExistsException.class,
+                () -> visitService.updateVisit(1L, command));
+        //then
+        assertAll(
+                () -> assertEquals("Visit does not exist.", result.getMessage()),
+                () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
+        );
+    }
+
+    @Test
+    void updateVisit_DoctorDoesNotExist_ThrowDoctorDoesNotExistsException() {
+        //given
+        VisitCreateCommand command = VisitCreateCommand.builder()
+                .doctorId(2L)
+                .build();
+        Doctor doctor = Doctor.builder()
+                .id(1L)
+                .build();
+        Visit existingVisit = Visit.builder()
+                .id(1L)
+                .doctor(doctor)
+                .build();
+        when(visitRepository.findById(existingVisit.getId())).thenReturn(Optional.of(existingVisit));
+        when(doctorRepository.findById(command.getDoctorId())).thenReturn(Optional.empty());
+        //when
+        DoctorDoesNotExistsException result = assertThrows(DoctorDoesNotExistsException.class,
+                () -> visitService.updateVisit(1L, command));
+        //then
+        assertAll(
+                () -> assertEquals("Doctor does not exist.", result.getMessage()),
+                () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
+        );
+    }
+
+    @Test
+    void updateVisit_PatientDoesNotExist_ThrowPatientDoesNotExistsException() {
+        //given
+        VisitCreateCommand command = VisitCreateCommand.builder()
+                .doctorId(1L)
+                .patientId(5L)
+                .build();
+        Doctor doctor = Doctor.builder()
+                .id(1L)
+                .build();
+        Visit existingVisit = Visit.builder()
+                .id(1L)
+                .doctor(doctor)
+                .build();
+        when(visitRepository.findById(existingVisit.getId())).thenReturn(Optional.of(existingVisit));
+        when(patientRepository.findById(command.getPatientId())).thenReturn(Optional.empty());
+        //when
+        PatientDoesNotExistsException result = assertThrows(PatientDoesNotExistsException.class,
+                () -> visitService.updateVisit(1L, command));
+        //then
+        assertAll(
+                () -> assertEquals("Patient not found.", result.getMessage()),
+                () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
+        );
+    }
+
+    @Test
+    void bookVisit_VisitDoesNotExist_ThrowVisitDoesNotExistsException() {
+        //given
+        when(visitRepository.findById(1L)).thenReturn(Optional.empty());
+        //when
+        VisitDoesNotExistsException result = assertThrows(VisitDoesNotExistsException.class,
+                () -> visitService.bookVisit(1L, 2L));
+        //then
+        assertAll(
+                () -> assertEquals("Visit does not exist.", result.getMessage()),
+                () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
+        );
+    }
+
+    @Test
+    void bookVisit_VisitIsInThePast_ThrowInvalidVisitException() {
+        //given
+        Visit pastVisit = Visit.builder()
+                .dateTime(LocalDateTime.now().minusDays(1))
+                .build();
+        when(visitRepository.findById(1L)).thenReturn(Optional.of(pastVisit));
+        //when
+        InvalidVisitException result = assertThrows(InvalidVisitException.class,
+                () -> visitService.bookVisit(1L, 2L));
+        //then
+        assertAll(
+                () -> assertEquals("Cannot book a visit in the past.", result.getMessage()),
+                () -> assertEquals(HttpStatus.BAD_REQUEST, result.getHttpStatus())
+        );
+    }
+
+    @Test
+    void bookVisit_VisitAlreadyBooked_ThrowVisitUnavailableException() {
+        //given
+        Patient patient = Patient.builder()
+                .id(5L)
+                .build();
+        Visit bookedVisit = Visit.builder()
+                .dateTime(LocalDateTime.now().plusDays(1))
+                .patient(patient)
+                .build();
+        when(visitRepository.findById(1L)).thenReturn(Optional.of(bookedVisit));
+        //when
+        VisitUnavailableException result = assertThrows(VisitUnavailableException.class,
+                () -> visitService.bookVisit(1L, 2L));
+        //then
+        assertAll(
+                () -> assertEquals("This visit is already booked.", result.getMessage()),
+                () -> assertEquals(HttpStatus.CONFLICT, result.getHttpStatus())
+        );
+    }
+
+    @Test
+    void bookVisit_PatientDoesNotExist_ThrowPatientDoesNotExistsException() {
+        //given
+        Visit openVisit = Visit.builder()
+                .dateTime(LocalDateTime.now().plusDays(1))
+                .patient(null)
+                .build();
+        when(visitRepository.findById(1L)).thenReturn(Optional.of(openVisit));
+        when(patientRepository.findById(2L)).thenReturn(Optional.empty());
+        //when
+        PatientDoesNotExistsException result = assertThrows(PatientDoesNotExistsException.class,
+                () -> visitService.bookVisit(1L, 2L));
+        //then
+        assertAll(
+                () -> assertEquals("Patient does not exist.", result.getMessage()),
+                () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
+        );
+    }
+
+    @Test
+    void delete_DataCorrect_DeleteVisit() {
+        when(visitRepository.existsById(1L)).thenReturn(true);
+        visitService.delete(1L);
+        verify(visitRepository, times(1)).existsById(1L);
+        verify(visitRepository, times(1)).deleteById(1L);
+        verifyNoMoreInteractions(visitRepository);
+    }
+
+    @Test
+    void delete_FacilityDoesNotExists_ThrowFacilityDoesNotExistsException() {
+        when(visitRepository.existsById(1L)).thenReturn(false);
+        VisitDoesNotExistsException result = assertThrows(VisitDoesNotExistsException.class,
+                () -> visitService.delete(1L));
+        assertAll(
+                () -> assertEquals("Visit does not exist.", result.getMessage()),
+                () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
         );
     }
 }

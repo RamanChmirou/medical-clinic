@@ -25,7 +25,7 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved list of users")
     })
     @GetMapping
-    public Page<UserDto> getUsers(
+    public Page<UserDto> getPaginatedUsers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy
@@ -41,8 +41,8 @@ public class UserController {
     })
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public UserDto add(@RequestBody UserCreateCommand patient) {
-        return userService.create(patient);
+    public UserDto create(@RequestBody UserCreateCommand command) {
+        return userService.create(command);
     }
 
     @Operation(summary = "Update an existing user", description = "Updates user information by email.")

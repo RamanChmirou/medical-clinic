@@ -1,5 +1,7 @@
 package com.kanapa4.medical_clinic.service;
 
+import com.kanapa4.medical_clinic.exception.UserAlreadyExistsException;
+import com.kanapa4.medical_clinic.exception.UserDoesNotExistsException;
 import com.kanapa4.medical_clinic.mapper.UserMapper;
 import com.kanapa4.medical_clinic.model.Role;
 import com.kanapa4.medical_clinic.model.dto.UserCreateCommand;
@@ -8,16 +10,16 @@ import com.kanapa4.medical_clinic.model.entity.User;
 import com.kanapa4.medical_clinic.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mapstruct.factory.Mappers;
-import org.mockito.Mockito;
 import org.springframework.data.domain.*;
+import org.springframework.http.HttpStatus;
 
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mapstruct.factory.Mappers.getMapper;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class UserServiceTest {
     private UserRepository userRepository;
@@ -26,8 +28,8 @@ public class UserServiceTest {
 
     @BeforeEach
     void setup() {
-        this.userRepository = Mockito.mock(UserRepository.class);
-        this.userMapper = Mappers.getMapper(UserMapper.class);
+        this.userRepository = mock(UserRepository.class);
+        this.userMapper = getMapper(UserMapper.class);
         this.userService = new UserService(userRepository, userMapper);
     }
 
@@ -42,7 +44,7 @@ public class UserServiceTest {
         Page<User> userPage = new PageImpl<>(List.of(user), pageable, 1);
         when(userRepository.findAll(pageable)).thenReturn(userPage);
         //when - w tej sekcji przeprowadzam sam test
-        Page<UserDto> result = userService.getPaginatedUsers(0,15, "email");
+        Page<UserDto> result = userService.getPaginatedUsers(0, 15, "email");
         //then - tutaj sprawdzam wyniki testu
         assertAll(
                 () -> assertEquals(1, result.getTotalPages()),
@@ -98,6 +100,120 @@ public class UserServiceTest {
         assertAll(
                 () -> assertEquals(userDto.getEmail(), result.getEmail()),
                 () -> assertEquals(userDto.getRole(), result.getRole())
+        );
+    }
+
+    @Test
+    void create_UserAlreadyExists_ThrowUserAlreadyExistsException() {
+        //given
+        UserCreateCommand command = UserCreateCommand.builder()
+                .email("test@email.com")
+                .build();
+        User existingUser = User.builder().build();
+        when(userRepository.findByEmail(command.getEmail())).thenReturn(Optional.of(existingUser));
+        //when
+        UserAlreadyExistsException result = assertThrows(UserAlreadyExistsException.class,
+                () -> userService.create(command));
+        //then
+        assertAll(
+                () -> assertEquals("User already exists", result.getMessage()),
+                () -> assertEquals(HttpStatus.CONFLICT, result.getHttpStatus())
+        );
+    }
+
+    @Test
+    void update_UserDoesNotExist_ThrowUserDoesNotExistsException() {
+        //given
+        UserDto dto = UserDto.builder().build();
+        when(userRepository.findByEmail("old@email.com")).thenReturn(Optional.empty());
+        //when
+        UserDoesNotExistsException result = assertThrows(UserDoesNotExistsException.class,
+                () -> userService.update("old@email.com", dto));
+        //then
+        assertAll(
+                () -> assertEquals("User does not exist", result.getMessage()),
+                () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
+        );
+    }
+
+    @Test
+    void update_NewEmailAlreadyInUse_ThrowUserAlreadyExistsException() {
+        //given
+        UserDto dto = UserDto.builder()
+                .email("occupied@email.com")
+                .build();
+        User existingUser = User.builder()
+                .email("old@email.com")
+                .build();
+        User occupant = User.builder().build();
+        when(userRepository.findByEmail("old@email.com")).thenReturn(Optional.of(existingUser));
+        when(userRepository.findByEmail(dto.getEmail())).thenReturn(Optional.of(occupant));
+        //when
+        UserAlreadyExistsException result = assertThrows(UserAlreadyExistsException.class,
+                () -> userService.update("old@email.com", dto));
+        //then
+        assertAll(
+                () -> assertEquals("New email is already in use", result.getMessage()),
+                () -> assertEquals(HttpStatus.CONFLICT, result.getHttpStatus())
+        );
+    }
+
+    @Test
+    void editPassword_UserDoesNotExist_ThrowUserDoesNotExistsException() {
+        //given
+        when(userRepository.findByEmail("test@email.com")).thenReturn(Optional.empty());
+        //when
+        UserDoesNotExistsException result = assertThrows(UserDoesNotExistsException.class,
+                () -> userService.editPassword("test@email.com", "newPassword"));
+        //then
+        assertAll(
+                () -> assertEquals("User does not exist", result.getMessage()),
+                () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
+        );
+    }
+
+    @Test
+    void delete_DataCorrect_DeleteUser() {
+        //given
+        User user = User.builder()
+                .email("email")
+                .build();
+        String email = user.getEmail();
+        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        //when
+        userService.delete(email);
+        //then
+        verify(userRepository, times(1)).findByEmail(email);
+        verify(userRepository, times(1)).deleteByEmail(email);
+        verifyNoMoreInteractions(userRepository);
+    }
+
+    @Test
+    void editPassword_DataCorrect_EditPassword() {
+        //given
+        String email = "email";
+        String newPassword = "6666";
+        User user = User.builder()
+                .email(email)
+                .password("1111")
+                .build();
+        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+        //when
+        userService.editPassword(email, newPassword);
+        //then
+        assertEquals(newPassword, user.getPassword());
+        verify(userRepository, times(1)).findByEmail(email);
+        verifyNoMoreInteractions(userRepository);
+    }
+
+    @Test
+    void delete_UserDoesNotExists_ThrowUserDoesNotExistsException() {
+        when(userRepository.findByEmail("email")).thenReturn(Optional.empty());
+        UserDoesNotExistsException result = assertThrows(UserDoesNotExistsException.class,
+                () -> userService.delete("email"));
+        assertAll(
+                () -> assertEquals("User does not exist", result.getMessage()),
+                () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
         );
     }
 }

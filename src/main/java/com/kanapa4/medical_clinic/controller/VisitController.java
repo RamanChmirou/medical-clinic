@@ -1,6 +1,5 @@
 package com.kanapa4.medical_clinic.controller;
 
-import com.kanapa4.medical_clinic.model.dto.UserDto;
 import com.kanapa4.medical_clinic.model.dto.VisitCreateCommand;
 import com.kanapa4.medical_clinic.model.dto.VisitDto;
 import com.kanapa4.medical_clinic.service.VisitService;
@@ -65,7 +64,7 @@ public class VisitController {
     })
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id) {
-        visitService.deleteVisit(id);
+        visitService.delete(id);
     }
 
     @Operation(summary = "Book a visit slot for a patient", description = "Assigns/books an available visit slot to a patient.")

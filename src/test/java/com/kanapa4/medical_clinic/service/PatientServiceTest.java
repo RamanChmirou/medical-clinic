@@ -1,5 +1,8 @@
 package com.kanapa4.medical_clinic.service;
 
+import com.kanapa4.medical_clinic.exception.PatientAlreadyExistsException;
+import com.kanapa4.medical_clinic.exception.PatientDoesNotExistsException;
+import com.kanapa4.medical_clinic.exception.UserDoesNotExistsException;
 import com.kanapa4.medical_clinic.mapper.PatientMapper;
 import com.kanapa4.medical_clinic.model.Role;
 import com.kanapa4.medical_clinic.model.dto.PatientCreateCommand;
@@ -11,17 +14,16 @@ import com.kanapa4.medical_clinic.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.*;
+import org.springframework.http.HttpStatus;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertAll;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mapstruct.factory.Mappers.getMapper;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class PatientServiceTest {
     private PatientRepository patientRepository;
@@ -199,6 +201,112 @@ public class PatientServiceTest {
                 () -> assertEquals(patientDto.getLastName(), result.getLastName()),
                 () -> assertEquals(patientDto.getPhoneNumber(), result.getPhoneNumber())
         );
+    }
 
+    @Test
+    void findById_PatientDoesNotExists_ThrowPatientDoesNotExistsException() {
+        //given
+        Long id = 1L;
+        when(patientRepository.findById(id)).thenReturn(Optional.empty());
+        //when
+        PatientDoesNotExistsException result = assertThrows(PatientDoesNotExistsException.class,
+                () -> patientService.findById(id));
+        //then
+        assertAll(
+                () -> assertEquals("Patient does not exist", result.getMessage()),
+                () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
+        );
+    }
+
+    @Test
+    void createPatientForUser_UserNotFound_ThrowUserDoesNotExistsException() {
+        //given
+        String userEmail = "email";
+        PatientCreateCommand patientCreateCommand = PatientCreateCommand.builder()
+                .firstName("firstName")
+                .lastName("lastName")
+                .build();
+        when(userRepository.findByEmail(userEmail)).thenReturn(Optional.empty());
+        //when
+        UserDoesNotExistsException result = assertThrows(UserDoesNotExistsException.class,
+                () -> patientService.createPatientForUser(userEmail, patientCreateCommand));
+        //then
+        assertAll(
+                () -> assertEquals("User not found", result.getMessage()),
+                () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
+        );
+    }
+
+    @Test
+    void create_PatientAlreadyExists_ThrowPatientAlreadyExistsException() {
+        //given
+        PatientCreateCommand command = PatientCreateCommand.builder()
+                .idCardNo("12345")
+                .build();
+        Patient existingPatient = Patient.builder().build();
+        when(patientRepository.findByIdCardNo(command.getIdCardNo())).thenReturn(Optional.of(existingPatient));
+        //when
+        PatientAlreadyExistsException result = assertThrows(PatientAlreadyExistsException.class,
+                () -> patientService.create(command));
+        //then
+        assertAll(
+                () -> assertEquals("Patient already exists", result.getMessage()),
+                () -> assertEquals(HttpStatus.CONFLICT, result.getHttpStatus())
+        );
+    }
+
+    @Test
+    void create_UserDoesNotExist_ThrowUserDoesNotExistsException() {
+        //given
+        PatientCreateCommand command = PatientCreateCommand.builder()
+                .idCardNo("12345")
+                .userId(1L)
+                .build();
+        when(patientRepository.findByIdCardNo(command.getIdCardNo())).thenReturn(Optional.empty());
+        when(userRepository.findById(command.getUserId())).thenReturn(Optional.empty());
+        //when
+        UserDoesNotExistsException result = assertThrows(UserDoesNotExistsException.class,
+                () -> patientService.create(command));
+        //then
+        assertAll(
+                () -> assertEquals("User does not exist", result.getMessage()),
+                () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
+        );
+    }
+
+    @Test
+    void update_PatientDoesNotExist_ThrowPatientDoesNotExistsException() {
+        //given
+        PatientDto dto = PatientDto.builder().build();
+        when(patientRepository.findById(1L)).thenReturn(Optional.empty());
+        //when
+        PatientDoesNotExistsException result = assertThrows(PatientDoesNotExistsException.class,
+                () -> patientService.update(1L, dto));
+        //then
+        assertAll(
+                () -> assertEquals("Patient does not exist", result.getMessage()),
+                () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
+        );
+    }
+
+    @Test
+    void delete_PatientDoesNotExists_ThrowPatientDoesNotExistsException() {
+        when(patientRepository.findById(1L)).thenReturn(Optional.empty());
+        PatientDoesNotExistsException result = assertThrows(PatientDoesNotExistsException.class,
+                () -> patientService.delete(1L));
+        assertAll(
+                () -> assertEquals("Patient does not exist", result.getMessage()),
+                () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
+        );
+    }
+
+    @Test
+    void delete_DataCorrect_DeletePatient() {
+        Patient patient = Patient.builder().build();
+        when(patientRepository.findById(1L)).thenReturn(Optional.of(patient));
+        patientService.delete(1L);
+        verify(patientRepository, times(1)).findById(1L);
+        verify(patientRepository, times(1)).deleteById(1L);
+        verifyNoMoreInteractions(patientRepository);
     }
 }

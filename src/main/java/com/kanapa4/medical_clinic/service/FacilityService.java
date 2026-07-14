@@ -1,12 +1,12 @@
 package com.kanapa4.medical_clinic.service;
 
+import com.kanapa4.medical_clinic.exception.FacilityAlreadyExistsException;
+import com.kanapa4.medical_clinic.exception.FacilityDoesNotExistsException;
+import com.kanapa4.medical_clinic.mapper.FacilityMapper;
 import com.kanapa4.medical_clinic.model.dto.FacilityCreateCommand;
 import com.kanapa4.medical_clinic.model.dto.FacilityDto;
 import com.kanapa4.medical_clinic.model.entity.Facility;
 import com.kanapa4.medical_clinic.repository.FacilityRepository;
-import com.kanapa4.medical_clinic.mapper.FacilityMapper;
-import com.kanapa4.medical_clinic.exception.FacilityDoesNotExistsException;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -38,6 +38,9 @@ public class FacilityService {
 
     @Transactional
     public FacilityDto create(FacilityCreateCommand command) {
+        if (facilityRepository.findByName(command.getName()).isPresent()) {
+            throw new FacilityAlreadyExistsException("Facility already exists");
+        }
         Facility facility = Facility.create(command);
         Facility savedFacility = facilityRepository.save(facility);
         return facilityMapper.toDto(savedFacility);
