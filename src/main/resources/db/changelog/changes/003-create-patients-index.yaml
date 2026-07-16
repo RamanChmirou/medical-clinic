@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003-create-patients-last-name-index
+      author: kanapa4
+      changes:
+        - createIndex:
+            tableName: patients
+            indexName: idx_patients_last_name
+            columns:
+              - column:
+                  name: last_name
