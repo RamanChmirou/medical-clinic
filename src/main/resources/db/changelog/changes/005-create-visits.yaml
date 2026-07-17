@@ -1,6 +1,6 @@
 databaseChangeLog:
   - changeSet:
-      id: 005-create-visits
+      id: create-visits
       author: kanapa4
       changes:
         - createTable:
@@ -28,34 +28,21 @@ databaseChangeLog:
                   type: BIGINT
                   constraints:
                     nullable: false
+                    foreignKeyName: fk_visits_doctor_id
+                    references: doctors(id)
               - column:
                   name: patient_id
                   type: BIGINT
+                  constraints:
+                    foreignKeyName: fk_visits_patient_id
+                    references: patients(id)
               - column:
                   name: facility_id
                   type: BIGINT
                   constraints:
                     nullable: false
-
-  - changeSet:
-      id: 005-add-visits-fks
-      author: kanapa4
-      changes:
-        - addForeignKeyConstraint:
-            baseTableName: visits
-            baseColumnNames: doctor_id
-            constraintName: fk_visits_doctor_id
-            referencedTableName: doctors
-            referencedColumnNames: id
-        - addForeignKeyConstraint:
-            baseTableName: visits
-            baseColumnNames: patient_id
-            constraintName: fk_visits_patient_id
-            referencedTableName: patients
-            referencedColumnNames: id
-        - addForeignKeyConstraint:
-            baseTableName: visits
-            baseColumnNames: facility_id
-            constraintName: fk_visits_facility_id
-            referencedTableName: facilities
-            referencedColumnNames: id
+                    foreignKeyName: fk_visits_facility_id
+                    references: facilities(id)
+      rollback:
+        - dropTable:
+            tableName: visits

@@ -44,7 +44,6 @@ public class FacilityServiceTest {
                 .street("zonik")
                 .buildingNumber("12A")
                 .build();
-
         Page<Facility> facilityPage = new PageImpl<>(List.of(facility), pageable, 1);
         when(facilityRepository.findAll(pageable)).thenReturn(facilityPage);
         //when
@@ -60,6 +59,8 @@ public class FacilityServiceTest {
                 () -> assertEquals(facility.getStreet(), toAssert.getStreet()),
                 () -> assertEquals(facility.getBuildingNumber(), toAssert.getBuildingNumber())
         );
+        verify(facilityRepository, times(1)).findAll(pageable);
+        verifyNoMoreInteractions(facilityRepository);
     }
 
     @Test
@@ -86,6 +87,8 @@ public class FacilityServiceTest {
                 () -> assertEquals(facility.getStreet(), result.getStreet()),
                 () -> assertEquals(facility.getBuildingNumber(), result.getBuildingNumber())
         );
+        verify(facilityRepository, times(1)).findById(id);
+        verifyNoMoreInteractions(facilityRepository);
     }
 
     @Test
@@ -106,6 +109,7 @@ public class FacilityServiceTest {
                 .street("zonik")
                 .buildingNumber("12A")
                 .build();
+        when(facilityRepository.findByName(facilityCreateCommand.getName())).thenReturn(Optional.empty());
         when(facilityRepository.save(any(Facility.class))).thenReturn(facility);
         //when
         FacilityDto result = facilityService.create(facilityCreateCommand);
@@ -117,6 +121,9 @@ public class FacilityServiceTest {
                 () -> assertEquals(facilityCreateCommand.getStreet(), result.getStreet()),
                 () -> assertEquals(facilityCreateCommand.getBuildingNumber(), result.getBuildingNumber())
         );
+        verify(facilityRepository, times(1)).findByName(facilityCreateCommand.getName());
+        verify(facilityRepository, times(1)).save(any(Facility.class));
+        verifyNoMoreInteractions(facilityRepository);
     }
 
     @Test
@@ -153,12 +160,15 @@ public class FacilityServiceTest {
         FacilityDto result = facilityService.update(id, facilityDto);
         //then
         assertAll(
-                () -> assertEquals(facilityToUpdate.getName(), result.getName()),
-                () -> assertEquals(facilityToUpdate.getCity(), result.getCity()),
-                () -> assertEquals(facilityToUpdate.getZipCode(), result.getZipCode()),
-                () -> assertEquals(facilityToUpdate.getStreet(), result.getStreet()),
-                () -> assertEquals(facilityToUpdate.getBuildingNumber(), result.getBuildingNumber())
+                () -> assertEquals(updatedFacility.getName(), result.getName()),
+                () -> assertEquals(updatedFacility.getCity(), result.getCity()),
+                () -> assertEquals(updatedFacility.getZipCode(), result.getZipCode()),
+                () -> assertEquals(updatedFacility.getStreet(), result.getStreet()),
+                () -> assertEquals(updatedFacility.getBuildingNumber(), result.getBuildingNumber())
         );
+        verify(facilityRepository, times(1)).findById(id);
+        verify(facilityRepository, times(1)).save(any(Facility.class));
+        verifyNoMoreInteractions(facilityRepository);
     }
 
     @Test
@@ -230,8 +240,11 @@ public class FacilityServiceTest {
 
     @Test
     void delete_DataCorrect_DeleteFacility() {
+        //given
         when(facilityRepository.findById(1L)).thenReturn(Optional.of(Facility.builder().build()));
+        //when
         facilityService.delete(1L);
+        //then
         verify(facilityRepository, times(1)).findById(1L);
         verify(facilityRepository, times(1)).deleteById(1L);
         verifyNoMoreInteractions(facilityRepository);
@@ -239,9 +252,12 @@ public class FacilityServiceTest {
 
     @Test
     void delete_FacilityDoesNotExists_ThrowFacilityDoesNotExistsException() {
+        //given
         when(facilityRepository.findById(1L)).thenReturn(Optional.empty());
+        //when
         FacilityDoesNotExistsException result = assertThrows(FacilityDoesNotExistsException.class,
                 () -> facilityService.delete(1L));
+        //then
         assertAll(
                 () -> assertEquals("Facility does not exist", result.getMessage()),
                 () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())

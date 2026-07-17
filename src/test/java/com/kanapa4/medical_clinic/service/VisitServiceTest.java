@@ -74,6 +74,8 @@ public class VisitServiceTest {
                 () -> assertEquals(visit.getDateTime(), result.getContent().getFirst().getDateTime()),
                 () -> assertEquals(visit.getDurationInMinutes(), result.getContent().getFirst().getDurationInMinutes())
         );
+        verify(visitRepository, times(1)).findAll(pageable);
+        verifyNoMoreInteractions(visitRepository);
     }
 
     @Test
@@ -104,6 +106,10 @@ public class VisitServiceTest {
                 () -> assertEquals(command.getDateTime(), result.getDateTime()),
                 () -> assertEquals(command.getDurationInMinutes(), result.getDurationInMinutes())
         );
+        verify(doctorRepository, times(1)).findById(1L);
+        verify(facilityRepository, times(1)).findById(2L);
+        verify(visitRepository, times(1)).save(any(Visit.class));
+        verifyNoMoreInteractions(visitRepository, doctorRepository, facilityRepository);
     }
 
     @Test
@@ -142,6 +148,11 @@ public class VisitServiceTest {
                 () -> assertEquals(command.getDateTime(), result.getDateTime()),
                 () -> assertEquals(command.getDurationInMinutes(), result.getDurationInMinutes())
         );
+        verify(visitRepository, times(1)).findById(1L);
+        verify(doctorRepository, times(1)).findById(20L);
+        verify(patientRepository, times(1)).findById(5L);
+        verify(visitRepository, times(1)).save(any(Visit.class));
+        verifyNoMoreInteractions(visitRepository, doctorRepository, patientRepository);
     }
 
     @Test
@@ -161,6 +172,9 @@ public class VisitServiceTest {
         assertAll(
                 () -> assertEquals(patient.getId(), result.getPatientId())
         );
+        verify(visitRepository, times(1)).findById(1L);
+        verify(patientRepository, times(1)).findById(2L);
+        verifyNoMoreInteractions(visitRepository, patientRepository);
     }
 
     @Test
@@ -181,6 +195,9 @@ public class VisitServiceTest {
                 () -> assertEquals(visit.getDateTime(), result.getFirst().getDateTime()),
                 () -> assertEquals(visit.getDurationInMinutes(), result.getFirst().getDurationInMinutes())
         );
+        verify(patientRepository, times(1)).existsById(1L);
+        verify(visitRepository, times(1)).findAllByPatientId(1L);
+        verifyNoMoreInteractions(visitRepository, patientRepository);
     }
 
     @Test
@@ -362,18 +379,24 @@ public class VisitServiceTest {
 
     @Test
     void delete_DataCorrect_DeleteVisit() {
+        //given
         when(visitRepository.existsById(1L)).thenReturn(true);
+        //when
         visitService.delete(1L);
+        //then
         verify(visitRepository, times(1)).existsById(1L);
         verify(visitRepository, times(1)).deleteById(1L);
         verifyNoMoreInteractions(visitRepository);
     }
 
     @Test
-    void delete_FacilityDoesNotExists_ThrowFacilityDoesNotExistsException() {
+    void delete_VisitDoesNotExists_ThrowVisitDoesNotExistsException() {
+        //given
         when(visitRepository.existsById(1L)).thenReturn(false);
+        //when
         VisitDoesNotExistsException result = assertThrows(VisitDoesNotExistsException.class,
                 () -> visitService.delete(1L));
+        //then
         assertAll(
                 () -> assertEquals("Visit does not exist.", result.getMessage()),
                 () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())

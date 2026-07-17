@@ -65,7 +65,7 @@ public class DoctorServiceTest {
                 .build();
         Page<Doctor> doctorPage = new PageImpl<>(List.of(doctor), pageable, 1);
         when(doctorRepository.findAll(pageable)).thenReturn(doctorPage);
-        //when - tutaj przeprowadzam test
+        //when
         Page<DoctorDto> result = doctorService.getPaginatedDoctors(0, 10, "id");
         //then
         assertAll(
@@ -74,6 +74,8 @@ public class DoctorServiceTest {
                 () -> assertEquals(doctor.getLastName(), result.getContent().getFirst().getLastName()),
                 () -> assertEquals(doctor.getSpecialization(), result.getContent().getFirst().getSpecialization())
         );
+        verify(doctorRepository, times(1)).findAll(pageable);
+        verifyNoMoreInteractions(doctorRepository);
     }
 
     @Test
@@ -100,6 +102,8 @@ public class DoctorServiceTest {
                 () -> assertEquals(doctor.getLastName(), result.getLastName()),
                 () -> assertEquals(doctor.getSpecialization(), result.getSpecialization())
         );
+        verify(doctorRepository, times(1)).findById(id);
+        verifyNoMoreInteractions(doctorRepository);
     }
 
     @Test
@@ -133,6 +137,10 @@ public class DoctorServiceTest {
                 () -> assertEquals(doctorCreateCommand.getFirstName(), result.getFirstName()),
                 () -> assertEquals(doctorCreateCommand.getLastName(), result.getLastName())
         );
+        verify(userRepository, times(1)).findById(1L);
+        verify(doctorRepository, times(1)).findByUserId(doctorCreateCommand.getUserId());
+        verify(doctorRepository, times(1)).save(any(Doctor.class));
+        verifyNoMoreInteractions(doctorRepository, userRepository);
     }
 
     @Test
@@ -160,10 +168,13 @@ public class DoctorServiceTest {
         DoctorDto result = doctorService.update(id, doctorDto);
         //then
         assertAll(
-                () -> assertEquals(doctorToUpdate.getSpecialization(), result.getSpecialization()),
-                () -> assertEquals(doctorToUpdate.getFirstName(), result.getFirstName()),
-                () -> assertEquals(doctorToUpdate.getSpecialization(), result.getSpecialization())
+                () -> assertEquals(updatedDoctor.getSpecialization(), result.getSpecialization()),
+                () -> assertEquals(updatedDoctor.getFirstName(), result.getFirstName()),
+                () -> assertEquals(updatedDoctor.getLastName(), result.getLastName())
         );
+        verify(doctorRepository, times(1)).findById(id);
+        verify(doctorRepository, times(1)).save(any(Doctor.class));
+        verifyNoMoreInteractions(doctorRepository);
     }
 
     @Test
@@ -213,6 +224,10 @@ public class DoctorServiceTest {
                     );
                 }
         );
+        verify(doctorRepository, times(1)).findById(doctorId);
+        verify(facilityRepository, times(1)).findById(facilityId);
+        verify(doctorRepository, times(1)).save(any(Doctor.class));
+        verifyNoMoreInteractions(doctorRepository, facilityRepository);
     }
 
     @Test
@@ -252,6 +267,10 @@ public class DoctorServiceTest {
                 () -> assertEquals(doctor.getSpecialization(), result.getSpecialization()),
                 () -> assertEquals(0, result.getFacilities().size())
         );
+        verify(doctorRepository, times(1)).findById(doctorId);
+        verify(facilityRepository, times(1)).findById(facilityId);
+        verify(doctorRepository, times(1)).save(any(Doctor.class));
+        verifyNoMoreInteractions(doctorRepository, facilityRepository);
     }
 
     @Test
@@ -266,7 +285,6 @@ public class DoctorServiceTest {
         assertAll(
                 () -> assertEquals("Doctor does not exist", result.getMessage()),
                 () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
-
         );
     }
 
@@ -284,7 +302,6 @@ public class DoctorServiceTest {
         assertAll(
                 () -> assertEquals("User does not exist", result.getMessage()),
                 () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
-
         );
     }
 
@@ -309,7 +326,6 @@ public class DoctorServiceTest {
         assertAll(
                 () -> assertEquals("This user is already a doctor", result.getMessage()),
                 () -> assertEquals(HttpStatus.CONFLICT, result.getHttpStatus())
-
         );
     }
 
@@ -330,7 +346,6 @@ public class DoctorServiceTest {
         assertAll(
                 () -> assertEquals("Doctor does not exist", result.getMessage()),
                 () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
-
         );
     }
 
@@ -347,7 +362,6 @@ public class DoctorServiceTest {
         assertAll(
                 () -> assertEquals("Doctor does not exist", result.getMessage()),
                 () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
-
         );
     }
 
@@ -368,7 +382,6 @@ public class DoctorServiceTest {
         assertAll(
                 () -> assertEquals("Facility does not exist", result.getMessage()),
                 () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
-
         );
     }
 
@@ -385,7 +398,6 @@ public class DoctorServiceTest {
         assertAll(
                 () -> assertEquals("Doctor does not exist", result.getMessage()),
                 () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
-
         );
     }
 
@@ -406,15 +418,17 @@ public class DoctorServiceTest {
         assertAll(
                 () -> assertEquals("Facility does not exist", result.getMessage()),
                 () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
-
         );
     }
 
     @Test
     void delete_DoctorDoesNotExists_ThrowDoctorDoesNotExistsException() {
+        //given
         when(doctorRepository.findById(1L)).thenReturn(Optional.empty());
+        //when
         DoctorDoesNotExistsException result = assertThrows(DoctorDoesNotExistsException.class,
                 () -> doctorService.delete(1L));
+        //then
         assertAll(
                 () -> assertEquals("Doctor does not exist", result.getMessage()),
                 () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
@@ -423,9 +437,12 @@ public class DoctorServiceTest {
 
     @Test
     void delete_DataCorrect_DeleteDoctor() {
+        //given
         Doctor doctor = Doctor.builder().build();
         when(doctorRepository.findById(1L)).thenReturn(Optional.of(doctor));
+        //when
         doctorService.delete(1L);
+        //then
         verify(doctorRepository, times(1)).findById(1L);
         verify(doctorRepository, times(1)).deleteById(1L);
         verifyNoMoreInteractions(doctorRepository);

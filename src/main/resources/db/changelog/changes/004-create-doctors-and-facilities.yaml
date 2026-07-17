@@ -1,6 +1,6 @@
 databaseChangeLog:
   - changeSet:
-      id: 004-create-doctors
+      id: create-doctors
       author: kanapa4
       changes:
         - createTable:
@@ -18,6 +18,9 @@ databaseChangeLog:
                   type: BIGINT
                   constraints:
                     unique: true
+                    foreignKeyName: fk_doctors_user_id
+                    references: users(id)
+                    deleteCascade: true
               - column:
                   name: first_name
                   type: VARCHAR(255)
@@ -26,21 +29,13 @@ databaseChangeLog:
                   type: VARCHAR(255)
               - column:
                   name: specialization
-                  type: INT
+                  type: VARCHAR(255)
+      rollback:
+        - dropTable:
+            tableName: doctors
 
   - changeSet:
-      id: 004-add-doctors-user-fk
-      author: kanapa4
-      changes:
-        - addForeignKeyConstraint:
-            baseTableName: doctors
-            baseColumnNames: user_id
-            constraintName: fk_doctors_user_id
-            referencedTableName: users
-            referencedColumnNames: id
-
-  - changeSet:
-      id: 004-create-facilities
+      id: create-facilities
       author: kanapa4
       changes:
         - createTable:
@@ -71,9 +66,12 @@ databaseChangeLog:
               - column:
                   name: building_number
                   type: VARCHAR(255)
+      rollback:
+        - dropTable:
+            tableName: facilities
 
   - changeSet:
-      id: 004-create-doctor-facility
+      id: create-doctor-facility
       author: kanapa4
       changes:
         - createTable:
@@ -84,34 +82,30 @@ databaseChangeLog:
                   type: BIGINT
                   constraints:
                     nullable: false
+                    foreignKeyName: fk_doctor_facility_doctor_id
+                    references: doctors(id)
+                    deleteCascade: true
               - column:
                   name: facility_id
                   type: BIGINT
                   constraints:
                     nullable: false
+                    foreignKeyName: fk_doctor_facility_facility_id
+                    references: facilities(id)
+                    deleteCascade: true
+      rollback:
+        - dropTable:
+            tableName: doctor_facility
 
   - changeSet:
-      id: 004-add-doctor-facility-pk
+      id: add-doctor-facility-pk
       author: kanapa4
       changes:
         - addPrimaryKey:
             tableName: doctor_facility
             columnNames: doctor_id, facility_id
             constraintName: pk_doctor_facility
-
-  - changeSet:
-      id: 004-add-doctor-facility-fks
-      author: kanapa4
-      changes:
-        - addForeignKeyConstraint:
-            baseTableName: doctor_facility
-            baseColumnNames: doctor_id
-            constraintName: fk_doctor_facility_doctor_id
-            referencedTableName: doctors
-            referencedColumnNames: id
-        - addForeignKeyConstraint:
-            baseTableName: doctor_facility
-            baseColumnNames: facility_id
-            constraintName: fk_doctor_facility_facility_id
-            referencedTableName: facilities
-            referencedColumnNames: id
+      rollback:
+        - dropPrimaryKey:
+            tableName: doctor_facility
+            constraintName: pk_doctor_facility

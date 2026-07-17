@@ -1,6 +1,6 @@
 databaseChangeLog:
   - changeSet:
-      id: 003-create-patients-last-name-index
+      id: create-patients-last-name-index
       author: kanapa4
       changes:
         - createIndex:
@@ -9,3 +9,7 @@ databaseChangeLog:
             columns:
               - column:
                   name: last_name
+      rollback:
+        - dropIndex:
+            tableName: patients
+            indexName: idx_patients_last_name

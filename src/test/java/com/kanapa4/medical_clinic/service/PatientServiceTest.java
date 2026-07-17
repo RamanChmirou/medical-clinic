@@ -55,7 +55,7 @@ public class PatientServiceTest {
                 .build();
         Page<Patient> patientPage = new PageImpl<>(List.of(patient), pageable, 1);
         when(patientRepository.findAll(pageable)).thenReturn(patientPage);
-        //when - tutaj przeprowadzam test
+        //when
         Page<PatientDto> result = patientService.getPaginatedPatients(0, 10, "idCardNo");
         //then
         assertAll(
@@ -63,6 +63,8 @@ public class PatientServiceTest {
                 () -> assertEquals("ala", result.getContent().getFirst().getFirstName()),
                 () -> assertEquals("pala", result.getContent().getFirst().getLastName())
         );
+        verify(patientRepository, times(1)).findAll(pageable);
+        verifyNoMoreInteractions(patientRepository);
     }
 
     @Test
@@ -100,6 +102,10 @@ public class PatientServiceTest {
                 () -> assertEquals(patientCreateCommand.getLastName(), result.getLastName()),
                 () -> assertEquals(patientCreateCommand.getPhoneNumber(), result.getPhoneNumber())
         );
+        verify(patientRepository, times(1)).findByIdCardNo(patientCreateCommand.getIdCardNo());
+        verify(userRepository, times(1)).findById(user.getId());
+        verify(patientRepository, times(1)).save(any(Patient.class));
+        verifyNoMoreInteractions(patientRepository, userRepository);
     }
 
     @Test
@@ -128,6 +134,8 @@ public class PatientServiceTest {
                 () -> assertEquals(patient.getLastName(), result.getLastName()),
                 () -> assertEquals(patient.getPhoneNumber(), result.getPhoneNumber())
         );
+        verify(patientRepository, times(1)).findById(id);
+        verifyNoMoreInteractions(patientRepository);
     }
 
     @Test
@@ -164,6 +172,9 @@ public class PatientServiceTest {
                 () -> assertEquals("last", result.getLastName()),
                 () -> assertEquals("123456789", result.getPhoneNumber())
         );
+        verify(userRepository, times(1)).findByEmail(user.getEmail());
+        verify(patientRepository, times(1)).save(any(Patient.class));
+        verifyNoMoreInteractions(patientRepository, userRepository);
     }
 
     @Test
@@ -201,6 +212,9 @@ public class PatientServiceTest {
                 () -> assertEquals(patientDto.getLastName(), result.getLastName()),
                 () -> assertEquals(patientDto.getPhoneNumber(), result.getPhoneNumber())
         );
+        verify(patientRepository, times(1)).findById(id);
+        verify(patientRepository, times(1)).save(any(Patient.class));
+        verifyNoMoreInteractions(patientRepository);
     }
 
     @Test
@@ -291,9 +305,12 @@ public class PatientServiceTest {
 
     @Test
     void delete_PatientDoesNotExists_ThrowPatientDoesNotExistsException() {
+        //given
         when(patientRepository.findById(1L)).thenReturn(Optional.empty());
+        //when
         PatientDoesNotExistsException result = assertThrows(PatientDoesNotExistsException.class,
                 () -> patientService.delete(1L));
+        //then
         assertAll(
                 () -> assertEquals("Patient does not exist", result.getMessage()),
                 () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
@@ -302,9 +319,12 @@ public class PatientServiceTest {
 
     @Test
     void delete_DataCorrect_DeletePatient() {
+        //given
         Patient patient = Patient.builder().build();
         when(patientRepository.findById(1L)).thenReturn(Optional.of(patient));
+        //when
         patientService.delete(1L);
+        //then
         verify(patientRepository, times(1)).findById(1L);
         verify(patientRepository, times(1)).deleteById(1L);
         verifyNoMoreInteractions(patientRepository);

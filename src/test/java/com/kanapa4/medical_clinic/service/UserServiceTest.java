@@ -35,7 +35,7 @@ public class UserServiceTest {
 
     @Test
     void getPaginatedUsers_DataCorrect_ReturnPaginatedUserDtos() {
-        //given - w tej sekcji przygotowujem dane do testu
+        //given
         Pageable pageable = PageRequest.of(0, 15, Sort.by("email").ascending());
         User user = User.builder()
                 .email("email@com")
@@ -43,18 +43,20 @@ public class UserServiceTest {
                 .build();
         Page<User> userPage = new PageImpl<>(List.of(user), pageable, 1);
         when(userRepository.findAll(pageable)).thenReturn(userPage);
-        //when - w tej sekcji przeprowadzam sam test
+        //when
         Page<UserDto> result = userService.getPaginatedUsers(0, 15, "email");
-        //then - tutaj sprawdzam wyniki testu
+        //then
         assertAll(
                 () -> assertEquals(1, result.getTotalPages()),
                 () -> assertEquals("email@com", result.getContent().getFirst().getEmail())
         );
+        verify(userRepository, times(1)).findAll(pageable);
+        verifyNoMoreInteractions(userRepository);
     }
 
     @Test
     void create_DataCorrect_ReturnCreatedUserDto() {
-        //given - w tej sekcji przygotowujem dane do testu
+        //given
         UserCreateCommand userCreateCommand = UserCreateCommand.builder()
                 .email("email")
                 .password("password")
@@ -67,18 +69,21 @@ public class UserServiceTest {
                 .role(Role.DOCTOR)
                 .build();
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
-        //when - w tej sekcji przeprowadzam sam test
+        //when
         UserDto result = userService.create(userCreateCommand);
-        //then - tutaj sprawdzam wyniki testu
+        //then
         assertAll(
                 () -> assertEquals("email", result.getEmail()),
                 () -> assertEquals(Role.DOCTOR, result.getRole())
         );
+        verify(userRepository, times(1)).findByEmail(userCreateCommand.getEmail());
+        verify(userRepository, times(1)).save(any(User.class));
+        verifyNoMoreInteractions(userRepository);
     }
 
     @Test
     void update_DataCorrect_ReturnUpdatedUserDto() {
-        //given - przygotowanie danych
+        //given
         String email = "email";
         User userForUpdate = User.builder()
                 .email("email")
@@ -93,14 +98,17 @@ public class UserServiceTest {
                 .role(Role.DOCTOR)
                 .build();
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(userForUpdate));
+        when(userRepository.findByEmail(userDto.getEmail())).thenReturn(Optional.empty());
         when(userRepository.save(any(User.class))).thenReturn(updatedUser);
-        //when - w tej sekcji przeprowadzam test
+        //when
         UserDto result = userService.update(email, userDto);
-        //then - sprawdzam wyniki testu
+        //then
         assertAll(
                 () -> assertEquals(userDto.getEmail(), result.getEmail()),
                 () -> assertEquals(userDto.getRole(), result.getRole())
         );
+        verify(userRepository, times(1)).findByEmail(email);
+        verify(userRepository, times(1)).save(any(User.class));
     }
 
     @Test
@@ -208,9 +216,12 @@ public class UserServiceTest {
 
     @Test
     void delete_UserDoesNotExists_ThrowUserDoesNotExistsException() {
+        //given
         when(userRepository.findByEmail("email")).thenReturn(Optional.empty());
+        //when
         UserDoesNotExistsException result = assertThrows(UserDoesNotExistsException.class,
                 () -> userService.delete("email"));
+        //then
         assertAll(
                 () -> assertEquals("User does not exist", result.getMessage()),
                 () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
