@@ -27,7 +27,8 @@ public class Doctor {
     private String firstName;
 
     private String lastName;
-
+    
+    @Enumerated(EnumType.STRING)
     private Specialization specialization;
 
     @Builder.Default
