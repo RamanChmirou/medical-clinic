@@ -1,0 +1,15 @@
+services:
+  postgres-db:
+    image: postgres:16-alpine
+    container_name: medical-clinic-db
+    environment:
+      POSTGRES_DB: medical_clinic
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 228007
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:

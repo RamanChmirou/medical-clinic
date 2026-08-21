@@ -2,6 +2,7 @@ package com.kanapa4.medical_clinic.service;
 
 import com.kanapa4.medical_clinic.exception.*;
 import com.kanapa4.medical_clinic.mapper.VisitMapper;
+import com.kanapa4.medical_clinic.model.VisitFilter;
 import com.kanapa4.medical_clinic.model.dto.VisitCreateCommand;
 import com.kanapa4.medical_clinic.model.dto.VisitDto;
 import com.kanapa4.medical_clinic.model.entity.Doctor;
@@ -12,18 +13,18 @@ import com.kanapa4.medical_clinic.repository.DoctorRepository;
 import com.kanapa4.medical_clinic.repository.FacilityRepository;
 import com.kanapa4.medical_clinic.repository.PatientRepository;
 import com.kanapa4.medical_clinic.repository.VisitRepository;
+import com.kanapa4.medical_clinic.repository.specs.VisitSpecs;
 import com.kanapa4.medical_clinic.validator.VisitValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -41,6 +42,20 @@ public class VisitService {
         }
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy).ascending());
         return visitRepository.findAll(pageable).map(visitMapper::toDto);
+    }
+
+    public Page<VisitDto> searchVisits(VisitFilter filter, Pageable pageable) {
+        Specification<Visit> spec = Specification.allOf(
+                VisitSpecs.patientIdEq(filter.patientId()),
+                VisitSpecs.doctorIdEq(filter.doctorId()),
+                VisitSpecs.doctorSpecializationEq(filter.specialization()),
+                VisitSpecs.dateEq(filter.date()),
+                VisitSpecs.startsAfter(filter.startDate()),
+                VisitSpecs.startsBefore(filter.endDate()),
+                VisitSpecs.isAvailable(filter.available())
+        );
+
+        return visitRepository.findAll(spec, pageable).map(visitMapper::toDto);
     }
 
     @Transactional
@@ -89,7 +104,6 @@ public class VisitService {
         if (!visitRepository.existsById(id)) {
             throw new VisitDoesNotExistsException("Visit does not exist.");
         }
-
         visitRepository.deleteById(id);
     }
 
@@ -108,18 +122,18 @@ public class VisitService {
                 .orElseThrow(() -> new PatientDoesNotExistsException("Patient does not exist."));
 
         visit.setPatient(patient);
-
         return visitMapper.toDto(visit);
     }
 
-    public List<VisitDto> getPatientVisits(Long patientId) {
-        if (!patientRepository.existsById(patientId)) {
-            throw new PatientDoesNotExistsException("Patient does not exist.");
+    @Transactional
+    public VisitDto cancelVisit(Long visitId) {
+        Visit visit = visitRepository.findById(visitId)
+                .orElseThrow(() -> new VisitDoesNotExistsException("Visit does not exist"));
+        if (visit.getPatient() == null) {
+            throw new VisitUnavailableException("Cannot cancel a visit that has no patient booked.");
         }
-
-        return visitRepository.findAllByPatientId(patientId).stream()
-                .map(visitMapper::toDto)
-                .collect(Collectors.toList());
+        visit.setPatient(null);
+        return visitMapper.toDto(visitRepository.save(visit));
     }
 
     private Doctor getDoctorById(Long doctorId) {

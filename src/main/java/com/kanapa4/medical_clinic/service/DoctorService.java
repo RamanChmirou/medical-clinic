@@ -5,6 +5,7 @@ import com.kanapa4.medical_clinic.exception.DoctorDoesNotExistsException;
 import com.kanapa4.medical_clinic.exception.FacilityDoesNotExistsException;
 import com.kanapa4.medical_clinic.exception.UserDoesNotExistsException;
 import com.kanapa4.medical_clinic.mapper.DoctorMapper;
+import com.kanapa4.medical_clinic.model.Specialization;
 import com.kanapa4.medical_clinic.model.dto.DoctorCreateCommand;
 import com.kanapa4.medical_clinic.model.dto.DoctorDto;
 import com.kanapa4.medical_clinic.model.entity.Doctor;
@@ -21,6 +22,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 
 @Service
 @RequiredArgsConstructor
@@ -30,11 +34,15 @@ public class DoctorService {
     private final FacilityRepository facilityRepository;
     private final DoctorMapper doctorMapper;
 
-    public Page<DoctorDto> getPaginatedDoctors(int page, int size, String sortBy) {
+    public Page<DoctorDto> getPaginatedDoctors(int page, int size, String sortBy, Specialization specialization) {
         if (size > 30) {
             size = 30;
         }
         Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy).ascending());
+
+        if (specialization != null) {
+            return doctorRepository.findBySpecialization(specialization, pageable).map(doctorMapper::toDto);
+        }
         return doctorRepository.findAll(pageable).map(doctorMapper::toDto);
     }
 
@@ -42,6 +50,12 @@ public class DoctorService {
         Doctor doctor = doctorRepository.findById(id)
                 .orElseThrow(() -> new DoctorDoesNotExistsException("Doctor does not exist"));
         return doctorMapper.toDto(doctor);
+    }
+
+    public List<DoctorDto> getDoctorsBySpecialization(Specialization specialization) {
+        return doctorRepository.findAllBySpecialization(specialization).stream()
+                .map(doctorMapper::toDto)
+                .collect(Collectors.toList());
     }
 
     public DoctorDto create(DoctorCreateCommand command) {

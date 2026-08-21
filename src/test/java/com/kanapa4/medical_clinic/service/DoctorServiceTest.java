@@ -66,7 +66,7 @@ public class DoctorServiceTest {
         Page<Doctor> doctorPage = new PageImpl<>(List.of(doctor), pageable, 1);
         when(doctorRepository.findAll(pageable)).thenReturn(doctorPage);
         //when
-        Page<DoctorDto> result = doctorService.getPaginatedDoctors(0, 10, "id");
+        Page<DoctorDto> result = doctorService.getPaginatedDoctors(0, 10, "id", null);
         //then
         assertAll(
                 () -> assertEquals(1, result.getTotalPages()),
@@ -75,6 +75,41 @@ public class DoctorServiceTest {
                 () -> assertEquals(doctor.getSpecialization(), result.getContent().getFirst().getSpecialization())
         );
         verify(doctorRepository, times(1)).findAll(pageable);
+        verifyNoMoreInteractions(doctorRepository);
+    }
+
+    @Test
+    void getDoctorsBySpecialization_DataCorrect_ReturnListOfDoctorDtos() {
+        //given
+        Doctor doctor = Doctor.builder()
+                .specialization(Specialization.CARDIOLOGY)
+                .firstName("ala")
+                .lastName("pala")
+                .user(User.builder().email("email@com").role(Role.DOCTOR).build())
+                .build();
+        when(doctorRepository.findAllBySpecialization(Specialization.CARDIOLOGY)).thenReturn(List.of(doctor));
+        //when
+        List<DoctorDto> result = doctorService.getDoctorsBySpecialization(Specialization.CARDIOLOGY);
+        //then
+        assertAll(
+                () -> assertEquals(1, result.size()),
+                () -> assertEquals(doctor.getFirstName(), result.getFirst().getFirstName()),
+                () -> assertEquals(doctor.getLastName(), result.getFirst().getLastName()),
+                () -> assertEquals(Specialization.CARDIOLOGY, result.getFirst().getSpecialization())
+        );
+        verify(doctorRepository, times(1)).findAllBySpecialization(Specialization.CARDIOLOGY);
+        verifyNoMoreInteractions(doctorRepository);
+    }
+
+    @Test
+    void getDoctorsBySpecialization_NoDoctorsFound_ReturnEmptyList() {
+        //given
+        when(doctorRepository.findAllBySpecialization(Specialization.SURGEON)).thenReturn(List.of());
+        //when
+        List<DoctorDto> result = doctorService.getDoctorsBySpecialization(Specialization.SURGEON);
+        //then
+        assertTrue(result.isEmpty());
+        verify(doctorRepository, times(1)).findAllBySpecialization(Specialization.SURGEON);
         verifyNoMoreInteractions(doctorRepository);
     }
 

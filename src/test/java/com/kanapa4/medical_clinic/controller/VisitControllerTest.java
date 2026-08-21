@@ -44,12 +44,12 @@ public class VisitControllerTest {
                 .build();
         Pageable pageable = PageRequest.of(0, 10, Sort.by("id").ascending());
         Page<VisitDto> mockPage = new PageImpl<>(List.of(visit), pageable, 1);
-        when(visitService.getPaginatedVisits(0, 10, "id")).thenReturn(mockPage);
+        when(visitService.searchVisits(any(com.kanapa4.medical_clinic.model.VisitFilter.class), any(Pageable.class))).thenReturn(mockPage);
 
         RequestBuilder request = MockMvcRequestBuilders.get("/visits")
                 .param("page", "0")
                 .param("size", "10")
-                .param("sortBy", "id")
+                .param("sort", "id,asc")
                 .accept(MediaType.APPLICATION_JSON);
 
         mockMvc.perform(request)
@@ -137,23 +137,5 @@ public class VisitControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.patientId").value(2));
-    }
-
-    @Test
-    void getPatientVisits_CorrectData_ReturnList() throws Exception {
-        VisitDto visit = VisitDto.builder()
-                .id(1L)
-                .patientId(2L)
-                .build();
-        when(visitService.getPatientVisits(2L)).thenReturn(List.of(visit));
-
-        RequestBuilder request = MockMvcRequestBuilders.get("/visits/patient/{patientId}", 2L)
-                .accept(MediaType.APPLICATION_JSON);
-
-        mockMvc.perform(request)
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].id").value(1));
     }
 }

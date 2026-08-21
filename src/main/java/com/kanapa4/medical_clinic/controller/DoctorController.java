@@ -1,5 +1,6 @@
 package com.kanapa4.medical_clinic.controller;
 
+import com.kanapa4.medical_clinic.model.Specialization;
 import com.kanapa4.medical_clinic.model.dto.DoctorCreateCommand;
 import com.kanapa4.medical_clinic.model.dto.DoctorDto;
 import com.kanapa4.medical_clinic.service.DoctorService;
@@ -11,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Tag(name = "Doctor Controller", description = "Operations related to managing doctors")
 @RestController
@@ -27,9 +30,19 @@ public class DoctorController {
     public Page<DoctorDto> getDoctors(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(required = false) Specialization specialization
     ) {
-        return doctorService.getPaginatedDoctors(page, size, sortBy);
+        return doctorService.getPaginatedDoctors(page, size, sortBy, specialization);
+    }
+
+    @Operation(summary = "Get all doctors by specialization", description = "Retrieves a flat list of all doctors with the given specialization. Intended for use by proxy services.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved doctors by specialization")
+    })
+    @GetMapping("/specialization/{specialization}")
+    public List<DoctorDto> getDoctorsBySpecialization(@PathVariable Specialization specialization) {
+        return doctorService.getDoctorsBySpecialization(specialization);
     }
 
     @Operation(summary = "Get doctor by ID", description = "Retrieves a single doctor by their unique identifier.")

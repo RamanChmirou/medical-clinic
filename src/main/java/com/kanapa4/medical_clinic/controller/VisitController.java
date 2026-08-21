@@ -1,5 +1,6 @@
 package com.kanapa4.medical_clinic.controller;
 
+import com.kanapa4.medical_clinic.model.VisitFilter;
 import com.kanapa4.medical_clinic.model.dto.VisitCreateCommand;
 import com.kanapa4.medical_clinic.model.dto.VisitDto;
 import com.kanapa4.medical_clinic.service.VisitService;
@@ -9,10 +10,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 
 @Tag(name = "Visit Controller", description = "Operations related to managing medical visits and appointments")
 @RestController
@@ -27,11 +29,10 @@ public class VisitController {
     })
     @GetMapping
     public Page<VisitDto> getVisits(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy
+            VisitFilter filter,
+            @PageableDefault(size = 20, sort = "dateTime") Pageable pageable
     ) {
-        return visitService.getPaginatedVisits(page, size, sortBy);
+        return visitService.searchVisits(filter, pageable);
     }
 
     @Operation(summary = "Create a new visit slot", description = "Creates a new visit slot/appointment slot in the system.")
@@ -78,13 +79,9 @@ public class VisitController {
         return visitService.bookVisit(visitId, patientId);
     }
 
-    @Operation(summary = "Get list of visits for a patient", description = "Retrieves a list of all visits booked for a specific patient.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Successfully retrieved patient's visits"),
-            @ApiResponse(responseCode = "404", description = "Patient not found")
-    })
-    @GetMapping("/patient/{patientId}")
-    public List<VisitDto> getPatientVisits(@PathVariable Long patientId) {
-        return visitService.getPatientVisits(patientId);
+    @Operation(summary = "Cancel a visit")
+    @PatchMapping("/{visitId}/cancel")
+    public VisitDto cancelVisit(@PathVariable Long visitId) {
+        return visitService.cancelVisit(visitId);
     }
 }

@@ -5,8 +5,9 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum Specialization {
     CARDIOLOGY("cardiology"),
-    DERMATOLOGY("dermatology");
-
+    DERMATOLOGY("dermatology"),
+    NEUROLOGIST("neurologist"),
+    SURGEON("surgeon");
     private final String name;
 }
 

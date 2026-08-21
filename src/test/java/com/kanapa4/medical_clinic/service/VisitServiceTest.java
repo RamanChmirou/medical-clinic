@@ -178,29 +178,6 @@ public class VisitServiceTest {
     }
 
     @Test
-    void getPatientVisits_DataCorrect_ReturnListOfVisitDtos() {
-        //given
-        Visit visit = Visit.builder()
-                .id(1L)
-                .dateTime(LocalDateTime.of(2026, 7, 7, 12, 0))
-                .durationInMinutes(15)
-                .build();
-        when(patientRepository.existsById(1L)).thenReturn(true);
-        when(visitRepository.findAllByPatientId(1L)).thenReturn(List.of(visit));
-        //when
-        List<VisitDto> result = visitService.getPatientVisits(1L);
-        //then
-        assertAll(
-                () -> assertEquals(1, result.size()),
-                () -> assertEquals(visit.getDateTime(), result.getFirst().getDateTime()),
-                () -> assertEquals(visit.getDurationInMinutes(), result.getFirst().getDurationInMinutes())
-        );
-        verify(patientRepository, times(1)).existsById(1L);
-        verify(visitRepository, times(1)).findAllByPatientId(1L);
-        verifyNoMoreInteractions(visitRepository, patientRepository);
-    }
-
-    @Test
     void createVisitSlot_DoctorDoesNotExist_ThrowDoctorDoesNotExistsException() {
         //given
         VisitCreateCommand command = VisitCreateCommand.builder()
@@ -401,5 +378,32 @@ public class VisitServiceTest {
                 () -> assertEquals("Visit does not exist.", result.getMessage()),
                 () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
         );
+    }
+
+    @Test
+    void searchVisits_DataCorrect_ReturnPageOfVisitDtos() {
+        //given
+        com.kanapa4.medical_clinic.model.VisitFilter filter = new com.kanapa4.medical_clinic.model.VisitFilter(
+                1L, 2L, com.kanapa4.medical_clinic.model.Specialization.CARDIOLOGY,
+                java.time.LocalDate.now(), java.time.LocalDate.now(), java.time.LocalDate.now(), true
+        );
+        Pageable pageable = PageRequest.of(0, 10, Sort.by("dateTime").ascending());
+        Visit visit = Visit.builder()
+                .id(1L)
+                .dateTime(LocalDateTime.of(2026, 7, 7, 12, 0))
+                .durationInMinutes(15)
+                .build();
+        Page<Visit> visitPage = new PageImpl<>(List.of(visit), pageable, 1);
+        when(visitRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(pageable))).thenReturn(visitPage);
+        //when
+        Page<VisitDto> result = visitService.searchVisits(filter, pageable);
+        //then
+        assertAll(
+                () -> assertEquals(1, result.getTotalPages()),
+                () -> assertEquals(visit.getDateTime(), result.getContent().getFirst().getDateTime()),
+                () -> assertEquals(visit.getDurationInMinutes(), result.getContent().getFirst().getDurationInMinutes())
+        );
+        verify(visitRepository, times(1)).findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(pageable));
+        verifyNoMoreInteractions(visitRepository);
     }
 }
