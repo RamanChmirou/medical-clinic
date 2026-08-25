@@ -5,11 +5,30 @@ services:
     environment:
       POSTGRES_DB: medical_clinic
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 228007
+      POSTGRES_PASSWORD: "228007"
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d medical_clinic" ]
+      interval: 3s
+      timeout: 3s
+      retries: 3
+
+  medical-clinic-app:
+    build: .
+    image: medical-clinic
+    container_name: medical-clinic-app
+    depends_on:
+      postgres-db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/medical_clinic
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: "228007"
+    ports:
+      - "8080:8080"
 
 volumes:
   pgdata:
