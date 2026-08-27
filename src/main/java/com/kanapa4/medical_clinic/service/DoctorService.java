@@ -22,9 +22,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
 
 @Service
 @RequiredArgsConstructor
@@ -50,12 +47,6 @@ public class DoctorService {
         Doctor doctor = doctorRepository.findById(id)
                 .orElseThrow(() -> new DoctorDoesNotExistsException("Doctor does not exist"));
         return doctorMapper.toDto(doctor);
-    }
-
-    public List<DoctorDto> getDoctorsBySpecialization(Specialization specialization) {
-        return doctorRepository.findAllBySpecialization(specialization).stream()
-                .map(doctorMapper::toDto)
-                .collect(Collectors.toList());
     }
 
     public DoctorDto create(DoctorCreateCommand command) {

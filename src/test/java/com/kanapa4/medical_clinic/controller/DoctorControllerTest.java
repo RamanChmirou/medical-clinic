@@ -62,6 +62,35 @@ public class DoctorControllerTest {
     }
 
     @Test
+    void getPaginatedDoctorsWithSpecialization_DataCorrect_ReturnPageWithDoctorDtos() throws Exception {
+        DoctorDto doctor = DoctorDto.builder()
+                .id(1L)
+                .firstName("John")
+                .lastName("Smith")
+                .specialization(Specialization.CARDIOLOGY)
+                .build();
+        Pageable pageable = PageRequest.of(0, 10, Sort.by("id").ascending());
+        Page<DoctorDto> mockPage = new PageImpl<>(List.of(doctor), pageable, 1);
+        when(doctorService.getPaginatedDoctors(0, 10, "id", Specialization.CARDIOLOGY)).thenReturn(mockPage);
+
+        RequestBuilder request = MockMvcRequestBuilders.get("/doctors")
+                .param("page", "0")
+                .param("size", "10")
+                .param("sortBy", "id")
+                .param("specialization", "CARDIOLOGY")
+                .accept(MediaType.APPLICATION_JSON);
+
+        mockMvc.perform(request)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalPages").value(1))
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.size").value(10))
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content[0].id").value(1))
+                .andExpect(jsonPath("$.content[0].specialization").value("CARDIOLOGY"));
+    }
+
+    @Test
     void findById_DoctorExists_ReturnDoctorDto() throws Exception {
         DoctorDto doctor = DoctorDto.builder()
                 .id(1L)
@@ -169,28 +198,5 @@ public class DoctorControllerTest {
 
         mockMvc.perform(request)
                 .andExpect(status().isNoContent());
-    }
-
-    @Test
-    void getDoctorsBySpecialization_DataCorrect_ReturnListOfDoctorDtos() throws Exception {
-        DoctorDto doctor = DoctorDto.builder()
-                .id(1L)
-                .firstName("John")
-                .lastName("Smith")
-                .specialization(Specialization.CARDIOLOGY)
-                .build();
-        when(doctorService.getDoctorsBySpecialization(Specialization.CARDIOLOGY)).thenReturn(List.of(doctor));
-
-        RequestBuilder request = MockMvcRequestBuilders
-                .get("/doctors/specialization/{specialization}", Specialization.CARDIOLOGY)
-                .accept(MediaType.APPLICATION_JSON);
-
-        mockMvc.perform(request)
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$[0].id").value(1))
-                .andExpect(jsonPath("$[0].firstName").value("John"))
-                .andExpect(jsonPath("$[0].lastName").value("Smith"))
-                .andExpect(jsonPath("$[0].specialization").value("CARDIOLOGY"));
     }
 }
