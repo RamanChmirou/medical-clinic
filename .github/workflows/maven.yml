@@ -28,4 +28,6 @@ jobs:
         distribution: 'temurin'
         cache: maven
     - name: Build with Maven
+      env:
+        DOCKER_HOST: unix:///var/run/docker.sock
       run: mvn -B package --file pom.xml
