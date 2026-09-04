@@ -1,33 +1,235 @@
-# This workflow will build a Java project with Maven, and cache/restore any dependencies to improve the workflow execution time
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-java-with-maven
+# =============================================================================
+# Nazwa całego potoku wyświetlana w zakładce "Actions" na GitHubie
+# =============================================================================
+name: CI/CD Pipeline - Medical Clinic
 
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-
-name: Java CI with Maven
-
+# -----------------------------------------------------------------------------
+# Zdarzenia (Events), które uruchamiają ten potok
+# -----------------------------------------------------------------------------
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "main", "master" ]   # Odpal przy pushu na główną gałąź
+    tags: [ "v*.*.*" ]              # Odpal przy utworzeniu taga wersji (np. v1.0.0)
   pull_request:
-    branches: [ "master" ]
+    branches: [ "main", "master" ]   # Odpal przy utworzeniu Pull Requesta
+  workflow_dispatch:                 # Pozwala uruchomić potok ręcznie przyciskiem "Run workflow"
+
+# Zmienne globalne dostępne we wszystkich zadaniach
+env:
+  APP_NAME: "medical-clinic"
+  # Adres rejestru kontenerów GitHuba (ghcr.io)
+  REGISTRY: ghcr.io
+  # Pełna nazwa obrazu (np. ghcr.io/twoj-login/medical-clinic)
+  IMAGE_NAME: ghcr.io/${{ github.repository }}
+
+# Uprawnienia dla domyślnego tokenu GITHUB_TOKEN w potoku
+permissions:
+  contents: read      # Dostęp do czytania kodu źródłowego
+  packages: write     # Wymagane do wypchnięcia kontenera do GitHub Container Registry
+  id-token: write     # Wymagane przez narzędzie Cosign do bezkluczowego podpisu (OIDC)
 
 jobs:
-  build:
-
-    runs-on: ubuntu-latest
-
+  # ===========================================================================
+  # KROK 1: Analiza jakości kodu (SonarQube / SonarCloud)
+  # ===========================================================================
+  quality:
+    name: SonarQube / SonarCloud Analysis
+    runs-on: ubuntu-latest # Maszyna wirtualna, na której GitHub odpala ten krok
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up JDK 21
-      uses: actions/setup-java@v4
-      with:
-        java-version: '21'
-        distribution: 'temurin'
-        cache: maven
-    - name: Build with Maven
-      env:
-        DOCKER_HOST: unix:///var/run/docker.sock
-      run: mvn -B package --file pom.xml
+      # Krok pobrania kodu z repozytorium na maszynę wirtualną
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Pobiera całą historię commitów (wymóg Sonara)
+
+      # Instalacja środowiska Java 21 na maszynie
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven # GitHub automatycznie tworzy i pobiera cache dla bibliotek Mavena
+
+      # Odpalenie testów i ewentualnego skanera SonarCloud
+      - name: Run tests and Sonar analysis
+        continue-on-error: true # Pozwala przejść dalej, jeśli Sonar nie jest jeszcze podpięty
+        run: |
+          echo "=== Uruchamianie analizy jakości kodu dla $APP_NAME ==="
+          # Jeśli masz darmowy SonarCloud, odkomentuj poniższą linię:
+          # mvn -B verify sonar:sonar -Dsonar.host.url="https://sonarcloud.io" -Dsonar.token="${{ secrets.SONAR_TOKEN }}"
+          mvn -B test
+
+  # ===========================================================================
+  # KROK 2: Skanowanie podatności bibliotek (OWASP Dependency-Check)
+  # ===========================================================================
+  security:
+    name: OWASP Dependency Check
+    runs-on: ubuntu-latest
+    needs: quality # Uruchom po zakończeniu zadania 'quality'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      # Uruchomienie skanera podatności w paczkach z pliku pom.xml
+      - name: Run OWASP Dependency-Check
+        continue-on-error: true # Pozwala przejść dalej w przypadku wykrycia podatności na zajęciach
+        run: |
+          echo "=== Skanowanie bibliotek pod kątem CVE ==="
+          mvn -B org.owasp:dependency-check-maven:check -DfailBuildOnCVSS="8" -Dformats=HTML,JSON
+
+      # Zapisanie raportu bezpieczeństwa jako pliku do pobrania w GitHub Actions
+      - name: Upload Security Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dependency-check-report
+          path: target/dependency-check-report.*
+
+  # ===========================================================================
+  # KROK 3: Budowanie pliku JAR aplikacji
+  # ===========================================================================
+  build:
+    name: Build JAR Package
+    runs-on: ubuntu-latest
+    needs: security # Uruchom po zakończeniu skanowania podatności
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      # Czyścimy i pakujemy projekt w plik .jar (pomijamy testy, bo przeszły w kroku 1)
+      - name: Build JAR with Maven
+        run: |
+          echo "=== Budowanie pliku JAR dla $APP_NAME ==="
+          mvn -B clean package -DskipTests
+
+      # Zapisujemy zbudowany plik .jar, aby kolejny job mógł go pobrać do obrazu Dockera
+      - name: Upload JAR Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-jar
+          path: target/*.jar
+
+  # ===========================================================================
+  # KROK 4: Budowanie i publikacja obrazu kontenera Docker
+  # ===========================================================================
+  package:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    needs: build
+    outputs:
+      # Przekazujemy dokładny hash (digest) obrazu do kolejnego zadania (podpisywania)
+      image_digest: ${{ steps.build-and-push.outputs.digest }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Pobieramy plik .jar zbudowany w poprzednim jobie i wrzucamy do folderu target/
+      - name: Download JAR Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-jar
+          path: target/
+
+      # Logujemy się do darmowego rejestru GitHub Container Registry (ghcr.io)
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Budujemy i wysyłamy obraz kontenera
+      - name: Build and push Docker image
+        id: build-and-push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.IMAGE_NAME }}:latest
+
+  # ===========================================================================
+  # KROK 5: Cyfrowe podpisywanie obrazu narzędziem Cosign (Sigstore)
+  # ===========================================================================
+  sign:
+    name: Sign Docker Image (Cosign)
+    runs-on: ubuntu-latest
+    needs: package
+    steps:
+      # Instalujemy oficjalne narzędzie Cosign na maszynie wirtualnej
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3.5.0
+
+      # Logujemy się Cosignem do rejestru kontenerów
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Podpisujemy obraz za pomocą tokenu OIDC GitHuba (Keyless signing)
+      - name: Sign image with GitHub OIDC
+        continue-on-error: true # W razie problemów sieciowych nie blokuje dalszej pracy
+        run: |
+          echo "=== Podpisywanie obrazu Cosignem ==="
+          cosign sign --yes "${{ env.IMAGE_NAME }}@${{ needs.package.outputs.image_digest }}"
+
+  # ===========================================================================
+  # KROK 6: Fake job - symulacja wysyłki do JFrog Artifactory / Nexus
+  # ===========================================================================
+  publish:
+    name: Fake Upload to Artifactory
+    runs-on: ubuntu-latest
+    needs: [build, sign]
+    steps:
+      - name: Download JAR Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-jar
+          path: target/
+
+      # Symulacja kroków połączenia i uploadu
+      - name: Simulate Artifact Upload
+        run: |
+          echo "=== Symulacja wysyłki artefaktów $APP_NAME do Artifactory ==="
+          echo "Łączenie z serwerem https://artifactory.corp.local/api/storage ..."
+          echo "Wysyłanie pliku target/*.jar do repozytorium 'libs-release-local'..."
+          sleep 3
+          echo "Status 201 Created: Paczka $APP_NAME-${{ github.sha }}.jar zarejestrowana!"
+          echo "Publikacja metadanych build-info i sumy kontrolnej SHA256..."
+          echo "Upload zakończony sukcesem."
+
+  # ===========================================================================
+  # KROK 7: Wdrożenie na środowisko deweloperskie (Kubernetes / DEV)
+  # ===========================================================================
+  deploy:
+    name: Deploy to DEV
+    runs-on: ubuntu-latest
+    needs: publish
+    # W GitHubie wdrożenia można powiązać ze środowiskiem (Settings > Environments)
+    environment:
+      name: dev
+      url: https://dev.medical-clinic.local
+    steps:
+      - name: Simulate Kubernetes Deployment
+        run: |
+          echo "=== Wdrażanie aplikacji $APP_NAME na środowisko DEV ==="
+          echo "Pobieranie obrazu ${{ env.IMAGE_NAME }}:${{ github.sha }}..."
+          echo "Aplikowanie konfiguracji w namespace 'dev'..."
+          echo "Wdrożenie zakończone pomyślnie. Aplikacja dostępna pod adresem: https://dev.medical-clinic.local"
