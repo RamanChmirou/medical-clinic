@@ -1,8 +1,11 @@
 package com.kanapa4.medical_clinic.service;
 
-import com.kanapa4.medical_clinic.exception.*;
+import com.kanapa4.medical_clinic.exception.DoctorAlreadyExistsException;
+import com.kanapa4.medical_clinic.exception.DoctorDoesNotExistsException;
+import com.kanapa4.medical_clinic.exception.FacilityDoesNotExistsException;
+import com.kanapa4.medical_clinic.exception.UserDoesNotExistsException;
 import com.kanapa4.medical_clinic.mapper.DoctorMapper;
-import com.kanapa4.medical_clinic.mapper.FacilityMapper;
+import com.kanapa4.medical_clinic.model.Specialization;
 import com.kanapa4.medical_clinic.model.dto.DoctorCreateCommand;
 import com.kanapa4.medical_clinic.model.dto.DoctorDto;
 import com.kanapa4.medical_clinic.model.entity.Doctor;
@@ -13,11 +16,12 @@ import com.kanapa4.medical_clinic.repository.FacilityRepository;
 import com.kanapa4.medical_clinic.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -26,12 +30,17 @@ public class DoctorService {
     private final UserRepository userRepository;
     private final FacilityRepository facilityRepository;
     private final DoctorMapper doctorMapper;
-    private final FacilityMapper facilityMapper;
 
-    public List<DoctorDto> findAll() {
-        return doctorRepository.findAll().stream()
-                .map(doctorMapper::toDto)
-                .toList();
+    public Page<DoctorDto> getPaginatedDoctors(int page, int size, String sortBy, Specialization specialization) {
+        if (size > 30) {
+            size = 30;
+        }
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy).ascending());
+
+        if (specialization != null) {
+            return doctorRepository.findBySpecialization(specialization, pageable).map(doctorMapper::toDto);
+        }
+        return doctorRepository.findAll(pageable).map(doctorMapper::toDto);
     }
 
     public DoctorDto findById(Long id) {
@@ -40,16 +49,15 @@ public class DoctorService {
         return doctorMapper.toDto(doctor);
     }
 
-    public DoctorDto create(DoctorCreateCommand dto) {
-        User user = userRepository.findById(dto.getUserId())
+    public DoctorDto create(DoctorCreateCommand command) {
+        User user = userRepository.findById(command.getUserId())
                 .orElseThrow(() -> new UserDoesNotExistsException("User does not exist"));
 
-        if (doctorRepository.findByUserId(dto.getUserId()).isPresent()) {
+        if (doctorRepository.findByUserId(command.getUserId()).isPresent()) {
             throw new DoctorAlreadyExistsException("This user is already a doctor");
         }
 
-        Doctor doctor = Doctor.create(dto, user);
-
+        Doctor doctor = Doctor.create(command, user);
         Doctor savedDoctor = doctorRepository.save(doctor);
         return doctorMapper.toDto(savedDoctor);
     }
@@ -61,17 +69,9 @@ public class DoctorService {
 
         existing.setFirstName(dto.getFirstName());
         existing.setLastName(dto.getLastName());
-        if (dto.getFacilities() != null) {
-            Set<Facility> mappedFacilities = dto.getFacilities().stream()
-                    .map(facilityMapper::toEntity)
-                    .collect(Collectors.toSet());
-            existing.setFacilities(mappedFacilities);
-        } else {
-            existing.setFacilities(null);
-        }
         existing.setSpecialization(dto.getSpecialization());
-
-        return doctorMapper.toDto(existing);
+        Doctor updatedDoctor = doctorRepository.save(existing);
+        return doctorMapper.toDto(updatedDoctor);
     }
 
     @Transactional
@@ -90,8 +90,8 @@ public class DoctorService {
                 .orElseThrow(() -> new FacilityDoesNotExistsException("Facility does not exist"));
 
         doctor.addFacility(facility);
-
-        return doctorMapper.toDto(doctor);
+        Doctor savedDoctor = doctorRepository.save(doctor);
+        return doctorMapper.toDto(savedDoctor);
     }
 
     @Transactional
@@ -102,7 +102,7 @@ public class DoctorService {
                 .orElseThrow(() -> new FacilityDoesNotExistsException("Facility does not exist"));
 
         doctor.removeFacility(facility);
-
-        return doctorMapper.toDto(doctor);
+        Doctor savedDoctor = doctorRepository.save(doctor);
+        return doctorMapper.toDto(savedDoctor);
     }
 }

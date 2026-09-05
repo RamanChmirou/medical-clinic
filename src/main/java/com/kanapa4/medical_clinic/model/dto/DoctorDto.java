@@ -1,6 +1,7 @@
 package com.kanapa4.medical_clinic.model.dto;
 
 import com.kanapa4.medical_clinic.model.Specialization;
+import com.kanapa4.medical_clinic.model.entity.Facility;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -13,4 +14,5 @@ public class DoctorDto {
     private String firstName;
     private String lastName;
     private Specialization specialization;
+    private Set<FacilityDto> facilities;
 }
