@@ -12,10 +12,11 @@ import com.kanapa4.medical_clinic.repository.PatientRepository;
 import com.kanapa4.medical_clinic.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -24,10 +25,21 @@ public class PatientService {
     private final PatientMapper patientMapper;
     private final UserRepository userRepository;
 
-    public List<PatientDto> findAll(String email) {
-        return search(email).stream()
-                .map(patientMapper::toDto)
-                .toList();
+    public Page<PatientDto> getPaginatedPatients(int page, int size, String sortBy) {
+        if (size > 30) {
+            size = 30;
+        }
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy).ascending());
+        return patientRepository.findAll(pageable).map(patientMapper::toDto);
+    }
+
+    @Transactional
+    public PatientDto createPatientForUser(String userEmail, PatientCreateCommand command) {
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new UserDoesNotExistsException("User not found"));
+        Patient newPatient = Patient.create(command, user);
+        Patient savedPatient = patientRepository.save(newPatient);
+        return patientMapper.toDto(savedPatient);
     }
 
     public PatientDto findById(Long id) {
@@ -40,12 +52,9 @@ public class PatientService {
         if (patientRepository.findByIdCardNo(dto.getIdCardNo()).isPresent()) {
             throw new PatientAlreadyExistsException("Patient already exists");
         }
-
         User user = userRepository.findById(dto.getUserId())
                 .orElseThrow(() -> new UserDoesNotExistsException("User does not exist"));
-
         Patient patient = Patient.create(dto, user);
-
         Patient savedPatient = patientRepository.save(patient);
         return patientMapper.toDto(savedPatient);
     }
@@ -58,8 +67,8 @@ public class PatientService {
         existing.setFirstName(dto.getFirstName());
         existing.setLastName(dto.getLastName());
         existing.setPhoneNumber(dto.getPhoneNumber());
-
-        return patientMapper.toDto(existing);
+        Patient savedPatient = patientRepository.save(existing);
+        return patientMapper.toDto(savedPatient);
     }
 
     @Transactional
@@ -68,11 +77,5 @@ public class PatientService {
             throw new PatientDoesNotExistsException("Patient does not exist");
         }
         patientRepository.deleteById(id);
-    }
-
-    private List<Patient> search(String email) {
-        return Optional.ofNullable(email)
-                .map(patientEmail -> patientRepository.findAllByUserEmail(email))
-                .orElse(patientRepository.findAll());
     }
 }

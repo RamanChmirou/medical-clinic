@@ -1,0 +1,50 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-users
+      author: kanapa4
+      changes:
+        - createTable:
+            tableName: users
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: email
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: password
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: role
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+      rollback:
+        - dropTable:
+            tableName: users
+
+  - changeSet:
+      id: add-patients-user-fk
+      author: kanapa4
+      changes:
+        - addForeignKeyConstraint:
+            baseTableName: patients
+            baseColumnNames: user_id
+            constraintName: fk_patients_user_id
+            referencedTableName: users
+            referencedColumnNames: id
+            onDelete: CASCADE
+      rollback:
+        - dropForeignKeyConstraint:
+            baseTableName: patients
+            constraintName: fk_patients_user_id

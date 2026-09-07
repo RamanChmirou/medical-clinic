@@ -1,0 +1,266 @@
+package com.kanapa4.medical_clinic.service;
+
+import com.kanapa4.medical_clinic.exception.FacilityAlreadyExistsException;
+import com.kanapa4.medical_clinic.exception.FacilityDoesNotExistsException;
+import com.kanapa4.medical_clinic.mapper.FacilityMapper;
+import com.kanapa4.medical_clinic.model.dto.FacilityCreateCommand;
+import com.kanapa4.medical_clinic.model.dto.FacilityDto;
+import com.kanapa4.medical_clinic.model.entity.Facility;
+import com.kanapa4.medical_clinic.repository.FacilityRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.*;
+import org.springframework.http.HttpStatus;
+
+import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mapstruct.factory.Mappers.getMapper;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+public class FacilityServiceTest {
+    private FacilityRepository facilityRepository;
+    private FacilityMapper facilityMapper;
+    private FacilityService facilityService;
+
+    @BeforeEach
+    void setup() {
+        this.facilityRepository = mock(FacilityRepository.class);
+        this.facilityMapper = getMapper(FacilityMapper.class);
+        this.facilityService = new FacilityService(facilityRepository, facilityMapper);
+    }
+
+    @Test
+    void getPaginatedFacilities_DataCorrect_ReturnPaginatedFacilitiesDtos() {
+        //given
+        Pageable pageable = PageRequest.of(1, 25, Sort.by("name").ascending());
+        Facility facility = Facility.builder()
+                .id(5L)
+                .name("falcons")
+                .city("Cologne")
+                .zipCode("228-00")
+                .street("zonik")
+                .buildingNumber("12A")
+                .build();
+        Page<Facility> facilityPage = new PageImpl<>(List.of(facility), pageable, 1);
+        when(facilityRepository.findAll(pageable)).thenReturn(facilityPage);
+        //when
+        Page<FacilityDto> result = facilityService.getPaginatedFacilities(1, 25, "name");
+        //then
+        FacilityDto toAssert = result.getContent().getFirst();
+        assertAll(
+                () -> assertEquals(2, result.getTotalPages()),
+                () -> assertEquals(facility.getName(), toAssert.getName()),
+                () -> assertEquals(facility.getId(), toAssert.getId()),
+                () -> assertEquals(facility.getCity(), toAssert.getCity()),
+                () -> assertEquals(facility.getZipCode(), toAssert.getZipCode()),
+                () -> assertEquals(facility.getStreet(), toAssert.getStreet()),
+                () -> assertEquals(facility.getBuildingNumber(), toAssert.getBuildingNumber())
+        );
+        verify(facilityRepository, times(1)).findAll(pageable);
+        verifyNoMoreInteractions(facilityRepository);
+    }
+
+    @Test
+    void findById_DataCorrect_ReturnFoundFacilityDto() {
+        //given
+        Long id = 5L;
+        Facility facility = Facility.builder()
+                .id(5L)
+                .name("falcons")
+                .city("Cologne")
+                .zipCode("228-00")
+                .street("zonik")
+                .buildingNumber("12A")
+                .build();
+        when(facilityRepository.findById(id)).thenReturn(Optional.of(facility));
+        //when
+        FacilityDto result = facilityService.findById(id);
+        //then
+        assertAll(
+                () -> assertEquals(facility.getName(), result.getName()),
+                () -> assertEquals(facility.getId(), result.getId()),
+                () -> assertEquals(facility.getCity(), result.getCity()),
+                () -> assertEquals(facility.getZipCode(), result.getZipCode()),
+                () -> assertEquals(facility.getStreet(), result.getStreet()),
+                () -> assertEquals(facility.getBuildingNumber(), result.getBuildingNumber())
+        );
+        verify(facilityRepository, times(1)).findById(id);
+        verifyNoMoreInteractions(facilityRepository);
+    }
+
+    @Test
+    void create_DataCorrect_ReturnCreatedFacility() {
+        //given
+        FacilityCreateCommand facilityCreateCommand = FacilityCreateCommand.builder()
+                .name("falcons")
+                .city("Cologne")
+                .zipCode("228-00")
+                .street("zonik")
+                .buildingNumber("12A")
+                .build();
+        Facility facility = Facility.builder()
+                .id(5L)
+                .name("falcons")
+                .city("Cologne")
+                .zipCode("228-00")
+                .street("zonik")
+                .buildingNumber("12A")
+                .build();
+        when(facilityRepository.findByName(facilityCreateCommand.getName())).thenReturn(Optional.empty());
+        when(facilityRepository.save(any(Facility.class))).thenReturn(facility);
+        //when
+        FacilityDto result = facilityService.create(facilityCreateCommand);
+        //then
+        assertAll(
+                () -> assertEquals(facilityCreateCommand.getName(), result.getName()),
+                () -> assertEquals(facilityCreateCommand.getCity(), result.getCity()),
+                () -> assertEquals(facilityCreateCommand.getZipCode(), result.getZipCode()),
+                () -> assertEquals(facilityCreateCommand.getStreet(), result.getStreet()),
+                () -> assertEquals(facilityCreateCommand.getBuildingNumber(), result.getBuildingNumber())
+        );
+        verify(facilityRepository, times(1)).findByName(facilityCreateCommand.getName());
+        verify(facilityRepository, times(1)).save(any(Facility.class));
+        verifyNoMoreInteractions(facilityRepository);
+    }
+
+    @Test
+    void update_DataCorrect_ReturnUpdatedFacility() {
+        //given
+        Long id = 5L;
+        Facility facilityToUpdate = Facility.builder()
+                .id(5L)
+                .name("falcons")
+                .city("Cologne")
+                .zipCode("228-00")
+                .street("zonik")
+                .buildingNumber("12A")
+                .build();
+        FacilityDto facilityDto = FacilityDto.builder()
+                .id(5L)
+                .name("navi")
+                .city("Cologne")
+                .zipCode("007-00")
+                .street("bl1ad")
+                .buildingNumber("21")
+                .build();
+        Facility updatedFacility = Facility.builder()
+                .id(5L)
+                .name("navi")
+                .city("Cologne")
+                .zipCode("007-00")
+                .street("bl1ad")
+                .buildingNumber("21")
+                .build();
+        when(facilityRepository.findById(id)).thenReturn(Optional.of(facilityToUpdate));
+        when(facilityRepository.save(any(Facility.class))).thenReturn(updatedFacility);
+        //when
+        FacilityDto result = facilityService.update(id, facilityDto);
+        //then
+        assertAll(
+                () -> assertEquals(updatedFacility.getName(), result.getName()),
+                () -> assertEquals(updatedFacility.getCity(), result.getCity()),
+                () -> assertEquals(updatedFacility.getZipCode(), result.getZipCode()),
+                () -> assertEquals(updatedFacility.getStreet(), result.getStreet()),
+                () -> assertEquals(updatedFacility.getBuildingNumber(), result.getBuildingNumber())
+        );
+        verify(facilityRepository, times(1)).findById(id);
+        verify(facilityRepository, times(1)).save(any(Facility.class));
+        verifyNoMoreInteractions(facilityRepository);
+    }
+
+    @Test
+    void findById_FacilityDoesNotExists_ThrowFacilityDoesNotExistsException() {
+        //given
+        Long id = 1L;
+        when(facilityRepository.findById(id)).thenReturn(Optional.empty());
+        //when
+        FacilityDoesNotExistsException result = assertThrows(FacilityDoesNotExistsException.class,
+                () -> facilityService.findById(id));
+        //then
+        assertAll(
+                () -> assertEquals("Facility does not exist", result.getMessage()),
+                () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
+        );
+    }
+
+    @Test
+    void create_FacilityAlreadyExists_ThrowFacilityAlreadyExistsException() {
+        //given
+        FacilityCreateCommand command = FacilityCreateCommand.builder()
+                .name("falcons")
+                .city("Cologne")
+                .zipCode("228-00")
+                .street("zonik")
+                .buildingNumber("12A")
+                .build();
+        Facility facility = Facility.builder()
+                .id(5L)
+                .name("navi")
+                .city("Cologne")
+                .zipCode("007-00")
+                .street("bl1ad")
+                .buildingNumber("21")
+                .build();
+        when(facilityRepository.findByName(command.getName())).thenReturn(Optional.of(facility));
+        //when
+        FacilityAlreadyExistsException result = assertThrows(FacilityAlreadyExistsException.class,
+                () -> facilityService.create(command));
+        //then
+        assertAll(
+                () -> assertEquals("Facility already exists", result.getMessage()),
+                () -> assertEquals(HttpStatus.CONFLICT, result.getHttpStatus())
+        );
+    }
+
+    @Test
+    void update_FacilityDoesNotExists_ThrowFacilityDoesNotExistsException() {
+        //given
+        Long id = 1L;
+        FacilityDto facilityDto = FacilityDto.builder()
+                .id(5L)
+                .name("navi")
+                .city("Cologne")
+                .zipCode("007-00")
+                .street("bl1ad")
+                .buildingNumber("21")
+                .build();
+        when(facilityRepository.findById(id)).thenReturn(Optional.empty());
+        //when
+        FacilityDoesNotExistsException result = assertThrows(FacilityDoesNotExistsException.class,
+                () -> facilityService.update(id, facilityDto));
+        //then
+        assertAll(
+                () -> assertEquals("Facility does not exist", result.getMessage()),
+                () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
+        );
+    }
+
+    @Test
+    void delete_DataCorrect_DeleteFacility() {
+        //given
+        when(facilityRepository.findById(1L)).thenReturn(Optional.of(Facility.builder().build()));
+        //when
+        facilityService.delete(1L);
+        //then
+        verify(facilityRepository, times(1)).findById(1L);
+        verify(facilityRepository, times(1)).deleteById(1L);
+        verifyNoMoreInteractions(facilityRepository);
+    }
+
+    @Test
+    void delete_FacilityDoesNotExists_ThrowFacilityDoesNotExistsException() {
+        //given
+        when(facilityRepository.findById(1L)).thenReturn(Optional.empty());
+        //when
+        FacilityDoesNotExistsException result = assertThrows(FacilityDoesNotExistsException.class,
+                () -> facilityService.delete(1L));
+        //then
+        assertAll(
+                () -> assertEquals("Facility does not exist", result.getMessage()),
+                () -> assertEquals(HttpStatus.NOT_FOUND, result.getHttpStatus())
+        );
+    }
+}

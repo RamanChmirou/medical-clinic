@@ -27,9 +27,11 @@ public class Doctor {
     private String firstName;
 
     private String lastName;
-
+    
+    @Enumerated(EnumType.STRING)
     private Specialization specialization;
 
+    @Builder.Default
     @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
             name = "doctor_facility",
