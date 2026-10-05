@@ -1,0 +1,83 @@
+package com.kanapa4.medical_clinic.adapter.facility;
+
+import com.kanapa4.medical_clinic.domain.FacilityService;
+import com.kanapa4.medical_clinic.model.FacilityCreateCommand;
+import com.kanapa4.medical_clinic.model.FacilityDto;
+import com.kanapa4.medical_clinic.model.Page;
+import com.kanapa4.medical_clinic.model.Pageable;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
+
+@Tag(name = "Facility Controller", description = "Operations related to managing medical facilities")
+@RestController
+@RequestMapping("/facilities")
+@RequiredArgsConstructor
+public class FacilityController {
+
+    private final FacilityService facilityService;
+
+    @Operation(summary = "Get paginated list of facilities", description = "Retrieves facilities with pagination.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Successfully retrieved list of facilities")
+    })
+    @GetMapping
+    public Page<FacilityDto> getFacilities(
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size
+    ) {
+        Pageable pageable = new Pageable(page, size);
+        return facilityService.getPaginatedFacilities(pageable);
+    }
+
+    @Operation(summary = "Get facility by ID", description = "Retrieves a single facility by its unique identifier.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Facility found and returned"),
+            @ApiResponse(responseCode = "404", description = "Facility not found")
+    })
+    @GetMapping("/{id}")
+    public FacilityDto findById(@PathVariable(name = "id") Long id) {
+        return facilityService.findById(id);
+    }
+
+    @Operation(summary = "Create a new facility", description = "Creates a new medical facility record in the system.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Facility successfully created"),
+            @ApiResponse(responseCode = "400", description = "Invalid request payload"),
+            @ApiResponse(responseCode = "409", description = "Facility already exists")
+    })
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public FacilityDto create(@RequestBody FacilityCreateCommand dto) {
+        return facilityService.create(dto);
+    }
+
+    @Operation(summary = "Update an existing facility", description = "Updates facility information by ID.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Facility successfully updated"),
+            @ApiResponse(responseCode = "400", description = "Invalid request payload"),
+            @ApiResponse(responseCode = "404", description = "Facility not found")
+    })
+    @PutMapping("/{id}")
+    public FacilityDto update(
+            @PathVariable(name = "id") Long id,
+            @RequestBody FacilityDto dto
+    ) {
+        return facilityService.update(id, dto);
+    }
+
+    @Operation(summary = "Delete facility by ID", description = "Deletes a facility from the system.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Facility successfully deleted"),
+            @ApiResponse(responseCode = "404", description = "Facility not found")
+    })
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable(name = "id") Long id) {
+        facilityService.delete(id);
+    }
+}
