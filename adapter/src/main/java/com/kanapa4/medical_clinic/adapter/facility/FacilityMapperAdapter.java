@@ -7,8 +7,6 @@ import com.kanapa4.medical_clinic.model.Page;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-
 @Component
 @RequiredArgsConstructor
 public class FacilityMapperAdapter implements FacilityMapperPort {
@@ -22,20 +20,6 @@ public class FacilityMapperAdapter implements FacilityMapperPort {
 
     @Override
     public Page<FacilityDto> toPageDto(Page<Facility> facilityPage) {
-        if (facilityPage == null) {
-            return null;
-        }
-        List<FacilityDto> dtos = (facilityPage.getContent() == null)
-                ? List.of()
-                : facilityPage.getContent().stream()
-                  .map(this::toDto)
-                  .toList();
-        return Page.<FacilityDto>builder()
-                .content(dtos)
-                .page(facilityPage.getPage())
-                .size(facilityPage.getSize())
-                .totalElements(facilityPage.getTotalElements())
-                .totalPages(facilityPage.getTotalPages())
-                .build();
+        return facilityPage == null ? null : facilityPage.map(this::toDto);
     }
 }

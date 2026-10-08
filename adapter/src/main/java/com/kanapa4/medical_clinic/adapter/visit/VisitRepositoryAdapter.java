@@ -1,16 +1,14 @@
 package com.kanapa4.medical_clinic.adapter.visit;
 
+import com.kanapa4.medical_clinic.adapter.PageMapper;
 import com.kanapa4.medical_clinic.adapter.VisitEntity;
-import com.kanapa4.medical_clinic.adapter.doctor.DoctorRepository;
-import com.kanapa4.medical_clinic.adapter.facility.FacilityRepository;
-import com.kanapa4.medical_clinic.adapter.patient.PatientRepository;
 import com.kanapa4.medical_clinic.domain.port.VisitRepositoryPort;
 import com.kanapa4.medical_clinic.model.Page;
 import com.kanapa4.medical_clinic.model.Pageable;
 import com.kanapa4.medical_clinic.model.Visit;
 import com.kanapa4.medical_clinic.model.VisitFilter;
+import com.kanapa4.medical_clinic.model.exception.VisitAlreadyExistsException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,14 +24,11 @@ public class VisitRepositoryAdapter implements VisitRepositoryPort {
 
     private final VisitRepository visitRepository;
     private final VisitMapper visitMapper;
-    private final DoctorRepository doctorRepository;
-    private final PatientRepository patientRepository;
-    private final FacilityRepository facilityRepository;
 
     @Override
     public Page<Visit> findAll(Pageable pageable) {
-        var springPageable = PageRequest.of(pageable.getPage(), pageable.getSize());
-        return visitMapper.toPojoPage(visitRepository.findAll(springPageable));
+        var springPage = visitRepository.findAll(PageMapper.toSpringPageable(pageable));
+        return PageMapper.toPojoPage(springPage, visitMapper::toPojo);
     }
 
     @Override
@@ -47,9 +42,8 @@ public class VisitRepositoryAdapter implements VisitRepositoryPort {
                 VisitSpecs.startsBefore(filter.endDate()),
                 VisitSpecs.isAvailable(filter.available())
         );
-
-        var springPageable = PageRequest.of(pageable.getPage(), pageable.getSize());
-        return visitMapper.toPojoPage(visitRepository.findAll(spec, springPageable));
+        var springPage = visitRepository.findAll(spec, PageMapper.toSpringPageable(pageable));
+        return PageMapper.toPojoPage(springPage, visitMapper::toPojo);
     }
 
     @Override
@@ -72,14 +66,12 @@ public class VisitRepositoryAdapter implements VisitRepositoryPort {
     @Override
     @Transactional
     public Visit save(Visit visit) {
+        if (visitRepository.findById(visit.getId()).isPresent()) {
+            throw new VisitAlreadyExistsException("Visit with id already exists");
+        }
         VisitEntity entity = visitMapper.toEntity(visit);
-        entity.setDoctorEntity(doctorRepository.getReferenceById(visit.getDoctor().getId()));
-        entity.setFacility(facilityRepository.getReferenceById(visit.getFacility().getId()));
-        entity.setPatientEntity(visit.getPatient() == null
-                ? null
-                : patientRepository.getReferenceById(visit.getPatient().getId()));
-        VisitEntity saved = visitRepository.save(entity);
-        return visitMapper.toPojo(saved);
+        VisitEntity savedEntity = visitRepository.save(entity);
+        return visitMapper.toPojo(savedEntity);
     }
 
     @Override

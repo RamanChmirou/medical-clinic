@@ -7,8 +7,6 @@ import com.kanapa4.medical_clinic.model.VisitDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-
 @Component
 @RequiredArgsConstructor
 public class VisitMapperAdapter implements VisitMapperPort {
@@ -21,17 +19,7 @@ public class VisitMapperAdapter implements VisitMapperPort {
     }
 
     @Override
-    public Page<VisitDto> toPageDto(Page<Visit> page) {
-        List<VisitDto> dtos = page.getContent().stream()
-                .map(visitMapper::toDto)
-                .toList();
-
-        return Page.<VisitDto>builder()
-                .content(dtos)
-                .page(page.getPage())
-                .size(page.getSize())
-                .totalElements(page.getTotalElements())
-                .totalPages(page.getTotalPages())
-                .build();
+    public Page<VisitDto> toPageDto(Page<Visit> visitPage) {
+        return visitPage == null ? null : visitPage.map(this::toDto);
     }
 }

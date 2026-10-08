@@ -7,8 +7,6 @@ import com.kanapa4.medical_clinic.model.PatientDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-
 @Component
 @RequiredArgsConstructor
 public class PatientMapperAdapter implements PatientMapperPort {
@@ -22,20 +20,6 @@ public class PatientMapperAdapter implements PatientMapperPort {
 
     @Override
     public Page<PatientDto> toPageDto(Page<Patient> patientPage) {
-        if (patientPage == null) {
-            return null;
-        }
-        List<PatientDto> dtos = (patientPage.getContent() == null)
-                ? List.of()
-                : patientPage.getContent().stream()
-                  .map(this::toDto)
-                  .toList();
-        return Page.<PatientDto>builder()
-                .content(dtos)
-                .page(patientPage.getPage())
-                .size(patientPage.getSize())
-                .totalElements(patientPage.getTotalElements())
-                .totalPages(patientPage.getTotalPages())
-                .build();
+        return patientPage == null ? null : patientPage.map(this::toDto);
     }
 }

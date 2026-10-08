@@ -7,8 +7,6 @@ import com.kanapa4.medical_clinic.model.Page;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-
 @Component
 @RequiredArgsConstructor
 public class DoctorMapperAdapter implements DoctorMapperPort {
@@ -20,17 +18,7 @@ public class DoctorMapperAdapter implements DoctorMapperPort {
     }
 
     @Override
-    public Page<DoctorDto> toPageDto(Page<Doctor> page) {
-        List<DoctorDto> dtos = page.getContent().stream()
-                .map(doctorMapper::toDto)
-                .toList();
-
-        return Page.<DoctorDto>builder()
-                .content(dtos)
-                .page(page.getPage())
-                .size(page.getSize())
-                .totalElements(page.getTotalElements())
-                .totalPages(page.getTotalPages())
-                .build();
+    public Page<DoctorDto> toPageDto(Page<Doctor> docktorPage) {
+        return docktorPage == null ? null : docktorPage.map(this::toDto);
     }
 }

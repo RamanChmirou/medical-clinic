@@ -7,8 +7,6 @@ import com.kanapa4.medical_clinic.model.UserDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-
 @Component
 @RequiredArgsConstructor
 public class UserMapperAdapter implements UserMapperPort {
@@ -22,20 +20,6 @@ public class UserMapperAdapter implements UserMapperPort {
 
     @Override
     public Page<UserDto> toPageDto(Page<User> userPage) {
-        if (userPage == null) {
-            return null;
-        }
-        List<UserDto> dtos = (userPage.getContent() == null)
-                ? List.of()
-                : userPage.getContent().stream()
-                  .map(this::toDto)
-                  .toList();
-        return Page.<UserDto>builder()
-                .content(dtos)
-                .page(userPage.getPage())
-                .size(userPage.getSize())
-                .totalElements(userPage.getTotalElements())
-                .totalPages(userPage.getTotalPages())
-                .build();
+        return userPage == null ? null : userPage.map(this::toDto);
     }
 }

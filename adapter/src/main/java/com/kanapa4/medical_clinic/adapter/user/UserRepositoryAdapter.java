@@ -1,16 +1,16 @@
 package com.kanapa4.medical_clinic.adapter.user;
 
+import com.kanapa4.medical_clinic.adapter.PageMapper;
 import com.kanapa4.medical_clinic.adapter.UserEntity;
 import com.kanapa4.medical_clinic.domain.port.UserRepositoryPort;
 import com.kanapa4.medical_clinic.model.Page;
 import com.kanapa4.medical_clinic.model.Pageable;
 import com.kanapa4.medical_clinic.model.User;
+import com.kanapa4.medical_clinic.model.exception.UserAlreadyExistsException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.Optional;
 
 @Component
@@ -23,19 +23,8 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
 
     @Override
     public Page<User> findAll(Pageable pageable) {
-        var springPageable = PageRequest.of(pageable.getPage(), pageable.getSize());
-        var springPage = userRepository.findAll(springPageable);
-        List<User> domainUsers = springPage.getContent().stream()
-                .map(userMapper::toPojo)
-                .toList();
-
-        return Page.<User>builder()
-                .content(domainUsers)
-                .page(springPage.getNumber())
-                .size(springPage.getSize())
-                .totalElements(springPage.getTotalElements())
-                .totalPages(springPage.getTotalPages())
-                .build();
+        var springPage = userRepository.findAll(PageMapper.toSpringPageable(pageable));
+        return PageMapper.toPojoPage(springPage, userMapper::toPojo);
     }
 
     @Override
@@ -53,15 +42,10 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
     @Override
     @Transactional
     public User save(User user) {
-        UserEntity entity;
-        if (user.getId() == null) {
-            entity = userMapper.toEntity(user);
-        } else {
-            entity = userRepository.findById(user.getId()).orElseThrow();
-            entity.setEmail(user.getEmail());
-            entity.setPassword(user.getPassword());
-            entity.setRole(user.getRole());
+        if (userRepository.findByEmail(user.getEmail()).isPresent()) {
+            throw new UserAlreadyExistsException("User with this email already exists");
         }
+        UserEntity entity = userMapper.toEntity(user);
         UserEntity savedEntity = userRepository.save(entity);
         return userMapper.toPojo(savedEntity);
     }

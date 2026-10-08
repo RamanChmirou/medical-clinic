@@ -20,7 +20,7 @@ public interface DoctorMapper {
 
     DoctorDto toDto(Doctor doctor);
 
-    default Long facilityToId(FacilityEntity f) {
-        return f.getId();
+    default Long facilityToId(FacilityEntity facilityEntity) {
+        return facilityEntity.getId();
     }
 }
