@@ -2,6 +2,7 @@ package com.kanapa4.medical_clinic.adapter.patient;
 
 import com.kanapa4.medical_clinic.adapter.PageMapper;
 import com.kanapa4.medical_clinic.adapter.PatientEntity;
+import com.kanapa4.medical_clinic.adapter.user.UserRepository;
 import com.kanapa4.medical_clinic.domain.port.PatientRepositoryPort;
 import com.kanapa4.medical_clinic.model.Page;
 import com.kanapa4.medical_clinic.model.Pageable;
@@ -19,6 +20,7 @@ import java.util.Optional;
 public class PatientRepositoryAdapter implements PatientRepositoryPort {
 
     private final PatientRepository patientRepository;
+    private final UserRepository userRepository;
     private final PatientMapper patientMapper;
 
     @Override
@@ -30,10 +32,18 @@ public class PatientRepositoryAdapter implements PatientRepositoryPort {
     @Override
     @Transactional
     public Patient save(Patient patient) {
-        if (patientRepository.findByIdCardNo(patient.getIdCardNo()).isPresent()) {
-            throw new PatientAlreadyExistsException("Patient with this id card number already exists");
-        }
+        patientRepository.findByIdCardNo(patient.getIdCardNo())
+                .filter(existing -> !existing.getId().equals(patient.getId()))
+                .ifPresent(existing -> {
+                    throw new PatientAlreadyExistsException("Patient with this id card number already exists");
+                });
+
         PatientEntity entity = patientMapper.toEntity(patient);
+
+        if (patient.getUserId() != null) {
+            entity.setUser(userRepository.getReferenceById(patient.getUserId()));
+        }
+
         PatientEntity savedEntity = patientRepository.save(entity);
         return patientMapper.toPojo(savedEntity);
     }

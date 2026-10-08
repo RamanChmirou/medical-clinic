@@ -43,9 +43,12 @@ public class FacilityRepositoryAdapter implements FacilityRepositoryPort {
     @Override
     @Transactional
     public Facility save(Facility facility) {
-        if (facilityRepository.findByName(facility.getName()).isPresent()) {
-            throw new FacilityAlreadyExistsException("Facility with this name already exists");
-        }
+        facilityRepository.findByName(facility.getName())
+                .filter(existing -> !existing.getId().equals(facility.getId()))
+                .ifPresent(existing -> {
+                    throw new FacilityAlreadyExistsException("Facility with this name already exists");
+                });
+
         FacilityEntity entity = facilityMapper.toEntity(facility);
         FacilityEntity savedEntity = facilityRepository.save(entity);
         return facilityMapper.toPojo(savedEntity);

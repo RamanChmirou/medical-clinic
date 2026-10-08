@@ -21,6 +21,6 @@ public interface DoctorMapper {
     DoctorDto toDto(Doctor doctor);
 
     default Long facilityToId(FacilityEntity facilityEntity) {
-        return facilityEntity.getId();
+        return facilityEntity != null ? facilityEntity.getId() : null;
     }
 }

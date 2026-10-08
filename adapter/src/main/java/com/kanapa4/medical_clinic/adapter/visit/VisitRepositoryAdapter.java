@@ -2,11 +2,11 @@ package com.kanapa4.medical_clinic.adapter.visit;
 
 import com.kanapa4.medical_clinic.adapter.PageMapper;
 import com.kanapa4.medical_clinic.adapter.VisitEntity;
+import com.kanapa4.medical_clinic.adapter.doctor.DoctorRepository;
+import com.kanapa4.medical_clinic.adapter.facility.FacilityRepository;
+import com.kanapa4.medical_clinic.adapter.patient.PatientRepository;
 import com.kanapa4.medical_clinic.domain.port.VisitRepositoryPort;
-import com.kanapa4.medical_clinic.model.Page;
-import com.kanapa4.medical_clinic.model.Pageable;
-import com.kanapa4.medical_clinic.model.Visit;
-import com.kanapa4.medical_clinic.model.VisitFilter;
+import com.kanapa4.medical_clinic.model.*;
 import com.kanapa4.medical_clinic.model.exception.VisitAlreadyExistsException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.domain.Specification;
@@ -23,7 +23,11 @@ import java.util.Optional;
 public class VisitRepositoryAdapter implements VisitRepositoryPort {
 
     private final VisitRepository visitRepository;
+    private final DoctorRepository doctorRepository;
+    private final FacilityRepository facilityRepository;
+    private final PatientRepository patientRepository;
     private final VisitMapper visitMapper;
+
 
     @Override
     public Page<Visit> findAll(Pageable pageable) {
@@ -66,10 +70,13 @@ public class VisitRepositoryAdapter implements VisitRepositoryPort {
     @Override
     @Transactional
     public Visit save(Visit visit) {
-        if (visitRepository.findById(visit.getId()).isPresent()) {
-            throw new VisitAlreadyExistsException("Visit with id already exists");
+        if (visit.getId() != null && visitRepository.existsById(visit.getId())) {
+            throw new VisitAlreadyExistsException("Visit with id " + visit.getId() + " already exists");
         }
+
         VisitEntity entity = visitMapper.toEntity(visit);
+        bindRelations(entity, visit);
+
         VisitEntity savedEntity = visitRepository.save(entity);
         return visitMapper.toPojo(savedEntity);
     }
@@ -78,5 +85,22 @@ public class VisitRepositoryAdapter implements VisitRepositoryPort {
     @Transactional
     public void deleteById(Long id) {
         visitRepository.deleteById(id);
+    }
+
+    private void bindRelations(VisitEntity entity, Visit visit) {
+        Optional.ofNullable(visit.getDoctor())
+                .map(Doctor::getId)
+                .map(doctorRepository::getReferenceById)
+                .ifPresent(entity::setDoctorEntity);
+
+        Optional.ofNullable(visit.getFacility())
+                .map(Facility::getId)
+                .map(facilityRepository::getReferenceById)
+                .ifPresent(entity::setFacility);
+
+        Optional.ofNullable(visit.getPatient())
+                .map(Patient::getId)
+                .map(patientRepository::getReferenceById)
+                .ifPresentOrElse(entity::setPatientEntity, () -> entity.setPatientEntity(null));
     }
 }
