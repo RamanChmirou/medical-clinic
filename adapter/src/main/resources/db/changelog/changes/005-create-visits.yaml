@@ -1,0 +1,48 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-visits
+      author: kanapa4
+      changes:
+        - createTable:
+            tableName: visits
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: date_time
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: duration_in_minutes
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: doctor_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_visits_doctor_id
+                    references: doctors(id)
+              - column:
+                  name: patient_id
+                  type: BIGINT
+                  constraints:
+                    foreignKeyName: fk_visits_patient_id
+                    references: patients(id)
+              - column:
+                  name: facility_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_visits_facility_id
+                    references: facilities(id)
+      rollback:
+        - dropTable:
+            tableName: visits
